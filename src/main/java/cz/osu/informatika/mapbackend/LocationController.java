@@ -5,15 +5,30 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @CrossOrigin(origins = "*")
 public class LocationController {
-    @GetMapping("/api/test-data")
-    public List<Map<String, Object>> getTestData() {
-        return List.of(
-                Map.of("name", "Centrum", "lat", 49.835, "lon", 18.292, "value", 75),
-                Map.of("name", "Ostrava-Jih", "lat", 49.777, "lon", 18.248, "value", 50)
-        );
+
+    private final EnviromentalPointRepository repository;
+
+    public LocationController(EnviromentalPointRepository repository) {
+        this.repository = repository;
+    }
+
+    @GetMapping("/api/locations")
+    public List<Map<String, Object>> getAllLocations() {
+        return repository.findAll().stream().map(point -> {
+            // Vytvoříme mapu explicitně jako Map<String, Object>
+            Map<String, Object> map = Map.of(
+                    "id", point.getId(),
+                    "name", point.getName(),
+                    "value", point.getQualityIndex(),
+                    "lat", point.getLocation().getY(),
+                    "lon", point.getLocation().getX()
+            );
+            return map;
+        }).collect(Collectors.toList());
     }
 }
