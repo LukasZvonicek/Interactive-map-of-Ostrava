@@ -2,55 +2,148 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Kvalita prostředí - Ostrava</title>
+    <title>Analýza kvality prostředí - Ostrava</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        #map { height: 600px; width: 100%; border-radius: 10px; }
-        body { font-family: Arial, sans-serif; margin: 20px; }
+        body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* Mapa zabírá většinu plochy */
+        #map { flex: 3; height: 100%; }
+
+        /* Postranní panel */
+        #sidebar { 
+            flex: 1; 
+            background: #ffffff; 
+            border-left: 2px solid #005aa7; /* Ostravská modrá :) */
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .header { background: #005aa7; color: white; padding: 15px; text-align: center; }
+        .content { padding: 15px; overflow-y: auto; flex-grow: 1; }
+
+        /* Styl pro jednotlivé položky v seznamu */
+        .result-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .result-item:hover { background: #f0f7ff; }
+        .category-tag {
+            font-size: 0.75em;
+            background: #e1e1e1;
+            padding: 2px 6px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            color: #555;
+        }
+        
+        .radius-info { font-size: 0.9em; color: #666; margin-bottom: 15px; }
     </style>
 </head>
 <body>
-    <h1>Interaktivní mapa kvality prostředí v Ostravě</h1>
+
     <div id="map"></div>
+
+    <div id="sidebar">
+        <div class="header">
+            <h3>Analýza okolí</h3>
+        </div>
+        <div class="content">
+            <div class="radius-info">
+                <strong>Radius:</strong> 500 metrů <br>
+                <em>Klikněte kamkoliv do mapy pro zobrazení objektů v okolí.</em>
+            </div>
+            <div id="results-count" style="font-weight: bold; margin-bottom: 10px;"></div>
+            <div id="results-list">
+                </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Inicializace mapy (střed Ostravy)
-        const map = L.map('map').setView([49.820, 18.260], 12);
-
-        // 2. Přidání podkladové mapy (OpenStreetMap)
+        // Inicializace mapy (střed Ostrava)
+        const map = L.map('map').setView([49.835, 18.292], 13);
+        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // 3. Načtení dat z tvého IntelliJ backendu
-        async function loadMapData() {
+        // Pomocná vrstva pro zobrazení kruhu (radiusu) a nalezených bodů
+        let analysisLayer = L.layerGroup().addTo(map);
+
+        // Funkce, která se spustí při kliknutí na mapu
+        map.on('click', async function(e) {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+            const radius = 500; // Vzdálenost v metrech
+
+            // 1. Vyčistit předchozí výsledky z mapy i lišty
+            analysisLayer.clearLayers();
+            document.getElementById('results-list').innerHTML = 'Načítám...';
+
+            // 2. Vykreslit kruh na mapě
+            L.circle([lat, lon], {
+                radius: radius,
+                color: '#005aa7',
+                fillOpacity: 0.1
+            }).addTo(analysisLayer);
+
             try {
-                const response = await fetch('http://localhost:8080/api/locations');
-                const locations = await response.json();
+                // 3. Volání tvého Java API (předpokládáme endpoint /api/locations nebo /api/analyze)
+                const response = await fetch(`http://localhost:8080/api/locations?lat=${lat}&lon=${lon}&radius=${radius}`);
+                const data = await response.json();
 
-                locations.forEach(loc => {
-                    // Logika barvy: Zelená pro dobrou kvalitu, oranžová pro horší
-                    const markerColor = loc.value > 60 ? 'green' : 'orange';
+                // 4. Zpracování výsledků
+                updateSidebar(data);
+                displayMarkers(data);
 
-                    L.circleMarker([loc.lat, loc.lon], {
-                        radius: 12,
-                        fillColor: markerColor,
-                        color: "#000",
-                        weight: 1,
-                        opacity: 1,
-                        fillOpacity: 0.8
-                    })
-                    .addTo(map)
-                    .bindPopup(`<b>${loc.name}</b><br>Kvalita prostředí: ${loc.value}%`);
-                });
-            } catch (error) {
-                console.error('Chyba při načítání dat:', error);
-                alert('Nepodařilo se připojit k Java backendu. Běží ti IntelliJ?');
+            } catch (err) {
+                console.error("Chyba při komunikaci s backendem:", err);
+                document.getElementById('results-list').innerHTML = '<span style="color:red">Chyba připojení k serveru.</span>';
             }
+        });
+
+        function updateSidebar(objects) {
+            const list = document.getElementById('results-list');
+            const countLabel = document.getElementById('results-count');
+            
+            list.innerHTML = '';
+            countLabel.innerText = `Nalezeno objektů: ${objects.length}`;
+
+            objects.forEach(obj => {
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
+                    <span class="category-tag">${obj.category}</span><br>
+                    <strong>${obj.name || 'Bez názvu'}</strong>
+                `;
+                
+                // Po kliknutí v liště se mapa na objekt zaměří
+                item.onclick = () => {
+                    map.setView([obj.lat, obj.lon], 17);
+                    L.popup().setLatLng([obj.lat, obj.lon]).setContent(obj.name).openOn(map);
+                };
+                
+                list.appendChild(item);
+            });
         }
 
-        loadMapData();
+        function displayMarkers(objects) {
+            objects.forEach(obj => {
+                L.circleMarker([obj.lat, obj.lon], {
+                    radius: 6,
+                    fillColor: "#ff7800",
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(analysisLayer)
+                .bindPopup(`<b>${obj.name}</b><br>${obj.category}`);
+            });
+        }
     </script>
 </body>
 </html>
