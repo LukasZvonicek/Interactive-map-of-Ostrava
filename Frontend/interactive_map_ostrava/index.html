@@ -2,148 +2,166 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Analýza kvality prostředí - Ostrava</title>
+    <title>Analýza Ostravy - Bakalářská práce</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/wicket/wicket.js"></script>
     <style>
-        body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        /* Mapa zabírá většinu plochy */
+        body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', sans-serif; }
         #map { flex: 3; height: 100%; }
-
-        /* Postranní panel */
         #sidebar { 
             flex: 1; 
-            background: #ffffff; 
-            border-left: 2px solid #005aa7; /* Ostravská modrá :) */
-            display: flex;
-            flex-direction: column;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            background: #f8f9fa; 
+            border-left: 2px solid #005aa7; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
         }
-
         .header { background: #005aa7; color: white; padding: 15px; text-align: center; }
         .content { padding: 15px; overflow-y: auto; flex-grow: 1; }
-
-        /* Styl pro jednotlivé položky v seznamu */
         .result-item {
-            border-bottom: 1px solid #eee;
-            padding: 10px 5px;
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
             cursor: pointer;
-            transition: background 0.2s;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
         }
-        .result-item:hover { background: #f0f7ff; }
+        .result-item:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .category-tag {
-            font-size: 0.75em;
-            background: #e1e1e1;
-            padding: 2px 6px;
-            border-radius: 10px;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
             text-transform: uppercase;
-            color: #555;
         }
-        
-        .radius-info { font-size: 0.9em; color: #666; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
+<div id="map"></div>
 
-    <div id="sidebar">
-        <div class="header">
-            <h3>Analýza okolí</h3>
-        </div>
-        <div class="content">
-            <div class="radius-info">
-                <strong>Radius:</strong> 500 metrů <br>
-                <em>Klikněte kamkoliv do mapy pro zobrazení objektů v okolí.</em>
-            </div>
-            <div id="results-count" style="font-weight: bold; margin-bottom: 10px;"></div>
-            <div id="results-list">
-                </div>
-        </div>
+<div id="sidebar">
+    <div class="header">
+        <h2>Analýza okolí</h2>
     </div>
+    <div class="content">
+        <div id="status" style="color: #666; margin-bottom: 10px;">Klikněte do mapy...</div>
+        <div id="results-count" style="font-weight: bold; margin-bottom: 15px;"></div>
+        <div id="results-list"></div>
+    </div>
+</div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // Inicializace mapy (střed Ostrava)
-        const map = L.map('map').setView([49.835, 18.292], 13);
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Inicializace mapy (střed Ostrava)
+    const map = L.map('map').setView([49.835, 18.292], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let analysisLayer = L.layerGroup().addTo(map);
+    const wktParser = new Wkt.Wkt();
+
+    // Barvy podle kategorií
+    const colors = {
+        'MHD': '#005aa7',      // Modrá
+        'SKOLA': '#d32f2f',    // Červená
+        'PARKOVANI': '#616161',// Šedá
+        'CYKLO': '#2e7d32',    // Zelená
+        'SPORT': '#f57c00'     // Oranžová
+    };
+
+    map.on('click', async function(e) {
+        const { lat, lng } = e.latlng;
+        const radius = 500;
+
+        analysisLayer.clearLayers();
+        document.getElementById('status').innerText = "Načítám data z backendu...";
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        // Vykreslení kruhu analýzy
+        L.circle([lat, lng], { radius, color: '#005aa7', fillOpacity: 0.05 }).addTo(analysisLayer);
 
-        // Pomocná vrstva pro zobrazení kruhu (radiusu) a nalezených bodů
-        let analysisLayer = L.layerGroup().addTo(map);
+        try {
+            const response = await fetch(`http://localhost:8080/api/locations?lat=${lat}&lon=${lng}&radius=${radius}`);
+            const data = await response.json();
 
-        // Funkce, která se spustí při kliknutí na mapu
-        map.on('click', async function(e) {
-            const lat = e.latlng.lat;
-            const lon = e.latlng.lng;
-            const radius = 500; // Vzdálenost v metrech
-
-            // 1. Vyčistit předchozí výsledky z mapy i lišty
-            analysisLayer.clearLayers();
-            document.getElementById('results-list').innerHTML = 'Načítám...';
-
-            // 2. Vykreslit kruh na mapě
-            L.circle([lat, lon], {
-                radius: radius,
-                color: '#005aa7',
-                fillOpacity: 0.1
-            }).addTo(analysisLayer);
-
-            try {
-                // 3. Volání tvého Java API (předpokládáme endpoint /api/locations nebo /api/analyze)
-                const response = await fetch(`http://localhost:8080/api/locations?lat=${lat}&lon=${lon}&radius=${radius}`);
-                const data = await response.json();
-
-                // 4. Zpracování výsledků
-                updateSidebar(data);
-                displayMarkers(data);
-
-            } catch (err) {
-                console.error("Chyba při komunikaci s backendem:", err);
-                document.getElementById('results-list').innerHTML = '<span style="color:red">Chyba připojení k serveru.</span>';
-            }
-        });
-
-        function updateSidebar(objects) {
-            const list = document.getElementById('results-list');
-            const countLabel = document.getElementById('results-count');
+            displayOnMap(data.mapData);
+            updateSidebar(data.panelData);
             
-            list.innerHTML = '';
-            countLabel.innerText = `Nalezeno objektů: ${objects.length}`;
-
-            objects.forEach(obj => {
-                const item = document.createElement('div');
-                item.className = 'result-item';
-                item.innerHTML = `
-                    <span class="category-tag">${obj.category}</span><br>
-                    <strong>${obj.name || 'Bez názvu'}</strong>
-                `;
-                
-                // Po kliknutí v liště se mapa na objekt zaměří
-                item.onclick = () => {
-                    map.setView([obj.lat, obj.lon], 17);
-                    L.popup().setLatLng([obj.lat, obj.lon]).setContent(obj.name).openOn(map);
-                };
-                
-                list.appendChild(item);
-            });
+            document.getElementById('status').innerText = "";
+            document.getElementById('results-count').innerText = `Nalezeno unikátních prvků: ${data.panelData.length}`;
+        } catch (err) {
+            console.error(err);
+            document.getElementById('status').innerText = "Chyba při komunikaci se serverem.";
         }
+    });
 
-        function displayMarkers(objects) {
-            objects.forEach(obj => {
-                L.circleMarker([obj.lat, obj.lon], {
-                    radius: 6,
-                    fillColor: "#ff7800",
-                    color: "#000",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(analysisLayer)
-                .bindPopup(`<b>${obj.name}</b><br>${obj.category}`);
-            });
+    function displayOnMap(mapData) {
+        const ostravaBlue = '#005aa7'; // Definice modré přímo zde
+
+        mapData.forEach(obj => {
+            wktParser.read(obj.geometry);
+            const geojson = wktParser.toJson();
+
+            L.geoJSON(geojson, {
+                style: { 
+                    color: ostravaBlue, // Čára bude modrá
+                    weight: 5, 
+                    opacity: 0.8 
+                },
+                pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+                    radius: 7,
+                    fillColor: ostravaBlue, // Vnitřek tečky bude modrý
+                    color: "#fff",          // Okraj bílý
+                    weight: 2,
+                    fillOpacity: 0.9
+                })
+            }).addTo(analysisLayer).bindPopup(`<b>${obj.name}</b><br>${obj.category}`);
+        });
+    }
+
+    function updateSidebar(panelData) {
+        const list = document.getElementById('results-list');
+        list.innerHTML = '';
+
+        panelData.forEach(obj => {
+            const color = colors[obj.category] || '#9e9e9e';
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            item.innerHTML = `
+                <span class="category-tag" style="background:${color}">${obj.category}</span>
+                <div style="margin-top:8px;"><strong>${obj.name}</strong></div>
+            `;
+            
+            item.onclick = () => {
+                map.setView([obj.lat, obj.lon], 17);
+                L.popup().setLatLng([obj.lat, obj.lon]).setContent(`<b>${obj.name}</b>`).openOn(map);
+            };
+            list.appendChild(item);
+        });
+    }
+
+    // Naslouchání klávese ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            // 1. Vymazat vrstvu s analýzou (kruh, body, čáry)
+            analysisLayer.clearLayers();
+        
+            // 2. Vymazat seznam v sidebaru
+            document.getElementById('results-list').innerHTML = '';
+        
+            // 3. Resetovat nápisy
+            document.getElementById('status').innerText = "Klikněte do mapy...";
+            document.getElementById('results-count').innerText = "";
+        
+            // 4. Zavřít otevřené bubliny (popupy) na mapě
+            map.closePopup();
+
+            console.log("Výběr zrušen klávesou ESC");
         }
-    </script>
+    });
+</script>
 </body>
 </html>

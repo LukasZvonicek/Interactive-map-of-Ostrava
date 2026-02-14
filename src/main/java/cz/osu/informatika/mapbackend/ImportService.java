@@ -51,7 +51,7 @@ public class ImportService {
                 String name = "Neznámý objekt";
 
                 String[] nameFields = {
-                        "NAME", "zast_jm", "INFO", "NAZEV"
+                        "NAME", "zast_jm", "INFO", "NAZEV", "TRASA"
                 };
 
                 String[] backupFields = {
