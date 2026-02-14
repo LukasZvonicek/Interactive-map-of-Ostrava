@@ -142,11 +142,11 @@
     <div class="filter-group">
         <label>Zobrazit kategorie</label>
         <div class="checkbox-list">
-            <input type="checkbox" class="cat-filter" value="ZASTÁVKY MHD" checked> ZASTÁVKA MHD<br>
-            <input type="checkbox" class="cat-filter" value="ŠKOLSKÁ ZAŘÍZENÍ" checked> ŠKOLSKÉ ZAŘÍZENÍ<br>
+            <input type="checkbox" class="cat-filter" value="ZASTÁVKA MHD" checked> ZASTÁVKY MHD<br>
+            <input type="checkbox" class="cat-filter" value="ŠKOLSKÉ ZAŘÍZENÍ" checked> ŠKOLSKÁ ZAŘÍZENÍ<br>
             <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ<br>
-            <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNY" checked> PARKOVACÍ ZÓNA<br>
-            <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKA<br>
+            <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNA" checked> PARKOVACÍ ZÓNY<br>
+            <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKY<br>
             <input type="checkbox" class="cat-filter" value="SPORTOVIŠTĚ" checked> SPORTOVIŠTĚ
         </div>
     </div>
@@ -264,26 +264,29 @@
 
     // 5. AKTUALIZACE SIDEBARU
     function updateSidebar(panelData) {
-        const list = document.getElementById('results-list');
-        list.innerHTML = '';
+    const list = document.getElementById('results-list');
+    list.innerHTML = '';
 
-        panelData.forEach(obj => {
-            const item = document.createElement('div');
-            item.className = 'result-item';
-            item.innerHTML = `
-                <span class="category-tag">${obj.category}</span>
-                <div style="margin-top:8px; color: #333;"><strong>${obj.name}</strong></div>
-            `;
-            
-            item.onclick = () => {
-                map.setView([obj.lat, obj.lon], 16);
-                L.popup().setLatLng([obj.lat, obj.lon])
-                         .setContent(`<b>${obj.name}</b>`)
-                         .openOn(map);
-            };
-            list.appendChild(item);
-        });
-    }
+    panelData.forEach(obj => {
+        const item = document.createElement('div');
+        item.className = 'result-item';
+
+        const displayName = (obj.name && obj.name !== "null" && obj.name !== "") ? obj.name : "Bez názvu";
+        
+        item.innerHTML = `
+            <span class="category-tag">${obj.category}</span>
+            <div style="margin-top:8px; color: #333;"><strong>${displayName}</strong></div>
+        `;
+        
+        item.onclick = () => {
+            map.setView([obj.lat, obj.lon], 16);
+            L.popup().setLatLng([obj.lat, obj.lon])
+                     .setContent(`<b>${displayName}</b>`)
+                     .openOn(map);
+        };
+        list.appendChild(item);
+    });
+}
 
     // 6. KLÁVESA ESC - RESET
     document.addEventListener('keydown', function(e) {

@@ -43,20 +43,11 @@ public class ImportService {
 
         for (JsonNode feature : features) {
             try {
-                MapObject obj = new MapObject();
-                obj.setCategory(category);
-
-                // 1. CHYTRÉ MAPOVÁNÍ NÁZVU (včetně tvého 'zast_jm')
+                // 1. CHYTRÉ MAPOVÁNÍ NÁZVU
                 JsonNode props = feature.get("properties");
                 String name = "Neznámý objekt";
-
-                String[] nameFields = {
-                        "NAME", "zast_jm", "INFO", "NAZEV", "TRASA"
-                };
-
-                String[] backupFields = {
-                        "ULICE"
-                };
+                String[] nameFields = {"NAME", "zast_jm", "INFO", "NAZEV", "TRASA"};
+                String[] backupFields = {"ULICE"};
 
                 for (String field : nameFields) {
                     if (props.has(field) && !props.get(field).asText().isEmpty()) {
@@ -64,7 +55,6 @@ public class ImportService {
                         break;
                     }
                 }
-
                 if(name.equals("Neznámý objekt")) {
                     for (String field : backupFields) {
                         if (props.has(field) && !props.get(field).asText().isEmpty()) {
@@ -73,13 +63,12 @@ public class ImportService {
                         }
                     }
                 }
-                obj.setName(name);
 
                 // 2. ČTENÍ GEOMETRIE
                 String geometryJson = feature.get("geometry").toString();
                 Geometry geom = reader.read(geometryJson);
 
-                // 3. ODSTRANĚNÍ Z-SOUŘADNICE (3D -> 2D)
+                // 3. ODSTRANĚNÍ Z-SOUŘADNICE (zachováno)
                 geom.apply(new org.locationtech.jts.geom.CoordinateSequenceFilter() {
                     @Override
                     public void filter(org.locationtech.jts.geom.CoordinateSequence seq, int i) {
@@ -89,13 +78,25 @@ public class ImportService {
                     @Override public boolean isGeometryChanged() { return true; }
                 });
 
-                geom.setSRID(4326); // Nastavení WGS84
-                obj.setGeometry(geom);
+                // --- KLÍČOVÁ ZMĚNA: NATIVNÍ SQL INSERT S TRANSFORMACÍ ---
+                // Místo entityManager.persist(obj) použijeme SQL, aby PostGIS mohl souřadnice přepočítat
 
-                // 4. ULOŽENÍ (Persist je pro hromadné vkládání lepší než save)
-                entityManager.persist(obj);
+                String sql;
+                if (geom.getCoordinate().x > 5000) {
+                    // Data jsou v Mercatoru (3395) -> transformujeme na 4326
+                    sql = "INSERT INTO map_object (name, category, geometry) VALUES (:name, :category, ST_Transform(ST_SetSRID(ST_GeomFromText(:wkt), 3395), 4326))";
+                } else {
+                    // Data jsou již ve stupních -> jen nastavíme 4326
+                    sql = "INSERT INTO map_object (name, category, geometry) VALUES (:name, :category, ST_SetSRID(ST_GeomFromText(:wkt), 4326))";
+                }
 
-                // 5. BATCHING (Každých 500 prvků vyčistíme paměť)
+                entityManager.createNativeQuery(sql)
+                        .setParameter("name", name)
+                        .setParameter("category", category)
+                        .setParameter("wkt", geom.toText())
+                        .executeUpdate();
+
+                // 5. BATCHING
                 if (++count % 500 == 0) {
                     entityManager.flush();
                     entityManager.clear();
@@ -104,10 +105,11 @@ public class ImportService {
 
             } catch (Exception e) {
                 System.err.println("Chyba u prvku v " + category + ": " + e.getMessage());
+                // Vyhození výjimky zde by mohlo "otrávit" transakci,
+                // ale NativeQuery je v tomto ohledu odolnější.
             }
         }
 
-        // Finální vyprázdnění zbytku do DB
         entityManager.flush();
         entityManager.clear();
         System.out.println(">>> Import kategorie " + category + " (celkem " + count + ") DOKONČEN.");

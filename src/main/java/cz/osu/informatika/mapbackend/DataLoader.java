@@ -19,9 +19,9 @@ public class DataLoader {
                 try{
                     importservice.importGeoJson("src/main/resources/data/cycle/cycle.geojson", "CYKLOSTEZKA");
                     importservice.importGeoJson("src/main/resources/data/parking/parking.geojson", "PARKOVÁNÍ");
-                    importservice.importGeoJson("src/main/resources/data/parking_zones/parking_zones.geojson", "PARKOVACÍ ZÓNY");
-                    importservice.importGeoJson("src/main/resources/data/public_transport_stops/public_transport_stops.geojson", "ZASTÁVKY MHD");
-                    importservice.importGeoJson("src/main/resources/data/schools/schools.geojson", "ŠKOLSKÁ ZAŘÍZENÍ");
+                    importservice.importGeoJson("src/main/resources/data/parking_zones/parking_zones.geojson", "PARKOVACÍ ZÓNA");
+                    importservice.importGeoJson("src/main/resources/data/public_transport_stops/public_transport_stops.geojson", "ZASTÁVKA MHD");
+                    importservice.importGeoJson("src/main/resources/data/schools/schools.geojson", "ŠKOLSKÉ ZAŘÍZENÍ");
                     importservice.importGeoJson("src/main/resources/data/sport_fields/sport_fields.geojson", "SPORTOVIŠTĚ");
                 }  catch (IOException e){
                     System.err.println("CHYBA: Nepodařilo se najít nebo přečíst soubor: " + e.getMessage());
