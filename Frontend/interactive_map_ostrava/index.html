@@ -4,164 +4,298 @@
     <meta charset="UTF-8">
     <title>Analýza Ostravy - Bakalářská práce</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/wicket/wicket.js"></script>
     <style>
-        body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', sans-serif; }
-        #map { flex: 3; height: 100%; }
+        body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        
+        /* Hlavní rozložení */
+        #map { flex: 3; height: 100%; position: relative; }
+        
         #sidebar { 
             flex: 1; 
-            background: #f8f9fa; 
+            background: #ffffff; 
             border-left: 2px solid #005aa7; 
             display: flex; 
             flex-direction: column; 
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1001;
         }
+
+        /* Levý ovládací panel */
+        #left-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 240px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-left: 5px solid #005aa7;
+        }
+
         .header { background: #005aa7; color: white; padding: 15px; text-align: center; }
         .content { padding: 15px; overflow-y: auto; flex-grow: 1; }
+
+        /* Filtry a Slider */
+        .filter-group { margin-bottom: 20px; }
+        .filter-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+        .radius-value { font-size: 1.2em; font-weight: bold; color: #005aa7; }
+        /* Základní vzhled lišty (track) */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+            margin: 15px 0;
+        }
+
+        /* Vzhled modré čáry (pro Chrome/Safari) */
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #005aa7; /* Ostravská modrá */
+            border-radius: 5px;
+        }
+
+        /* Vzhled samotného kolečka (thumb) pro Chrome/Safari */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #005aa7; /* Modrý okraj kolečka */
+            cursor: pointer;
+            margin-top: -7px; /* Vycentrování vůči čáře */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s ease;
+        }
+
+        /* Efekt při najetí na kolečko */
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #f0f7ff;
+        }
+
+        /* Úprava pro Firefox */
+        input[type="range"]::-moz-range-track {
+            background: #005aa7;
+            height: 6px;
+            border-radius: 5px;
+        }
+        input[type="range"]::-moz-range-thumb {
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #005aa7;
+            cursor: pointer;
+        }
+                
+        .checkbox-list { font-size: 0.9em; line-height: 1.6; }
+        .checkbox-list input { margin-right: 8px; }
+
+        /* Položky v pravém seznamu */
         .result-item {
-            background: white;
-            border-radius: 8px;
+            background: #fdfdfd;
+            border-radius: 6px;
             padding: 12px;
             margin-bottom: 10px;
             cursor: pointer;
-            border: 1px solid #e0e0e0;
+            border: 1px solid #eee;
             transition: all 0.2s;
         }
-        .result-item:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .result-item:hover { background: #f0f7ff; border-color: #005aa7; transform: translateX(-5px); }
+        
         .category-tag {
             font-size: 0.7em;
             padding: 2px 8px;
             border-radius: 4px;
             color: white;
             font-weight: bold;
+            background: #005aa7;
             text-transform: uppercase;
         }
+
+        hr { border: 0; border-top: 1px solid #ddd; margin: 15px 0; }
     </style>
 </head>
 <body>
+
+<div id="left-panel">
+    <div class="filter-group">
+        <label>Radius analýzy</label>
+        <input type="range" id="radius-slider" min="200" max="2000" step="100" value="500">
+        <div style="text-align: center; margin-top: 5px;">
+            <span id="radius-val" class="radius-value">500</span> <span style="font-weight: bold; color: #005aa7;">m</span>
+        </div>
+    </div>
+    
+    <hr>
+    
+    <div class="filter-group">
+        <label>Zobrazit kategorie</label>
+        <div class="checkbox-list">
+            <input type="checkbox" class="cat-filter" value="ZASTÁVKY MHD" checked> ZASTÁVKA MHD<br>
+            <input type="checkbox" class="cat-filter" value="ŠKOLSKÁ ZAŘÍZENÍ" checked> ŠKOLSKÉ ZAŘÍZENÍ<br>
+            <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ<br>
+            <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNY" checked> PARKOVACÍ ZÓNA<br>
+            <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKA<br>
+            <input type="checkbox" class="cat-filter" value="SPORTOVIŠTĚ" checked> SPORTOVIŠTĚ
+        </div>
+    </div>
+    <div style="font-size: 0.8em; color: #777;">
+        Tip: Kliknutím do mapy spustíte analýzu. Klávesou <strong>ESC</strong> zrušíte výběr.
+    </div>
+</div>
 
 <div id="map"></div>
 
 <div id="sidebar">
     <div class="header">
-        <h2>Analýza okolí</h2>
+        <h2 style="margin:0; font-size: 1.2em;">Výsledky analýzy</h2>
     </div>
     <div class="content">
-        <div id="status" style="color: #666; margin-bottom: 10px;">Klikněte do mapy...</div>
-        <div id="results-count" style="font-weight: bold; margin-bottom: 15px;"></div>
+        <div id="status" style="font-style: italic; color: #888; margin-bottom: 10px;">Klikněte do mapy...</div>
+        <div id="results-count" style="margin-bottom: 15px; font-weight: bold; color: #005aa7;"></div>
         <div id="results-list"></div>
     </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // Inicializace mapy (střed Ostrava)
-    const map = L.map('map').setView([49.835, 18.292], 13);
+    // 1. OMEZENÍ MAPY NA OSTRAVU
+    const ostravaBounds = L.latLngBounds(
+        L.latLng(49.70, 18.10), 
+        L.latLng(49.95, 18.45)
+    );
+
+    const map = L.map('map', {
+        maxBounds: ostravaBounds,
+        maxBoundsViscosity: 1.0,
+        minZoom: 11
+    }).setView([49.835, 18.292], 13);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
+        attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
     let analysisLayer = L.layerGroup().addTo(map);
     const wktParser = new Wkt.Wkt();
+    const ostravaBlue = '#005aa7';
 
-    // Barvy podle kategorií
-    const colors = {
-        'MHD': '#005aa7',      // Modrá
-        'SKOLA': '#d32f2f',    // Červená
-        'PARKOVANI': '#616161',// Šedá
-        'CYKLO': '#2e7d32',    // Zelená
-        'SPORT': '#f57c00'     // Oranžová
+    // 2. OVLÁDÁNÍ RADIUSU
+    let currentRadius = 500;
+    const slider = document.getElementById('radius-slider');
+    const radiusLabel = document.getElementById('radius-val');
+
+    slider.oninput = function() {
+        currentRadius = this.value;
+        radiusLabel.innerText = currentRadius;
     };
 
+    // 3. ANALÝZA PO KLIKNUTÍ
     map.on('click', async function(e) {
         const { lat, lng } = e.latlng;
-        const radius = 500;
+        
+        // Získání aktivních filtrů
+        const activeFilters = Array.from(document.querySelectorAll('.cat-filter:checked'))
+                                   .map(cb => cb.value);
 
         analysisLayer.clearLayers();
-        document.getElementById('status').innerText = "Načítám data z backendu...";
-        
+        document.getElementById('status').innerText = "Komunikuji se serverem...";
+        document.getElementById('results-list').innerHTML = '';
+
         // Vykreslení kruhu analýzy
-        L.circle([lat, lng], { radius, color: '#005aa7', fillOpacity: 0.05 }).addTo(analysisLayer);
+        L.circle([lat, lng], { 
+            radius: currentRadius, 
+            color: ostravaBlue, 
+            weight: 2,
+            fillColor: ostravaBlue, 
+            fillOpacity: 0.1 
+        }).addTo(analysisLayer);
 
         try {
-            const response = await fetch(`http://localhost:8080/api/locations?lat=${lat}&lon=${lng}&radius=${radius}`);
+            const url = `http://localhost:8080/api/locations?lat=${lat}&lon=${lng}&radius=${currentRadius}`;
+            const response = await fetch(url);
             const data = await response.json();
 
-            displayOnMap(data.mapData);
-            updateSidebar(data.panelData);
+            // Filtrování dat na straně klienta
+            const filteredMapData = data.mapData.filter(obj => activeFilters.includes(obj.category));
+            const filteredPanelData = data.panelData.filter(obj => activeFilters.includes(obj.category));
+
+            displayOnMap(filteredMapData);
+            updateSidebar(filteredPanelData);
             
             document.getElementById('status').innerText = "";
-            document.getElementById('results-count').innerText = `Nalezeno unikátních prvků: ${data.panelData.length}`;
+            document.getElementById('results-count').innerText = `Nalezeno prvků: ${filteredPanelData.length}`;
+            
         } catch (err) {
             console.error(err);
-            document.getElementById('status').innerText = "Chyba při komunikaci se serverem.";
+            document.getElementById('status').innerText = "Chyba: Server neodpovídá.";
         }
     });
 
+    // 4. VYKRESLENÍ DO MAPY (BODY A LINIE)
     function displayOnMap(mapData) {
-        const ostravaBlue = '#005aa7'; // Definice modré přímo zde
-
         mapData.forEach(obj => {
-            wktParser.read(obj.geometry);
-            const geojson = wktParser.toJson();
+            try {
+                wktParser.read(obj.geometry);
+                const geojson = wktParser.toJson();
 
-            L.geoJSON(geojson, {
-                style: { 
-                    color: ostravaBlue, // Čára bude modrá
-                    weight: 5, 
-                    opacity: 0.8 
-                },
-                pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-                    radius: 7,
-                    fillColor: ostravaBlue, // Vnitřek tečky bude modrý
-                    color: "#fff",          // Okraj bílý
-                    weight: 2,
-                    fillOpacity: 0.9
-                })
-            }).addTo(analysisLayer).bindPopup(`<b>${obj.name}</b><br>${obj.category}`);
+                L.geoJSON(geojson, {
+                    style: { color: ostravaBlue, weight: 5, opacity: 0.7 },
+                    pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+                        radius: 8,
+                        fillColor: ostravaBlue,
+                        color: "#fff",
+                        weight: 2,
+                        fillOpacity: 0.9
+                    })
+                }).addTo(analysisLayer).bindPopup(`<b>${obj.name}</b><br><small>${obj.category}</small>`);
+            } catch (e) { console.error("Chyba parsování geometrie", e); }
         });
     }
 
+    // 5. AKTUALIZACE SIDEBARU
     function updateSidebar(panelData) {
         const list = document.getElementById('results-list');
         list.innerHTML = '';
 
         panelData.forEach(obj => {
-            const color = colors[obj.category] || '#9e9e9e';
             const item = document.createElement('div');
             item.className = 'result-item';
             item.innerHTML = `
-                <span class="category-tag" style="background:${color}">${obj.category}</span>
-                <div style="margin-top:8px;"><strong>${obj.name}</strong></div>
+                <span class="category-tag">${obj.category}</span>
+                <div style="margin-top:8px; color: #333;"><strong>${obj.name}</strong></div>
             `;
             
             item.onclick = () => {
-                map.setView([obj.lat, obj.lon], 17);
-                L.popup().setLatLng([obj.lat, obj.lon]).setContent(`<b>${obj.name}</b>`).openOn(map);
+                map.setView([obj.lat, obj.lon], 16);
+                L.popup().setLatLng([obj.lat, obj.lon])
+                         .setContent(`<b>${obj.name}</b>`)
+                         .openOn(map);
             };
             list.appendChild(item);
         });
     }
 
-    // Naslouchání klávese ESC
+    // 6. KLÁVESA ESC - RESET
     document.addEventListener('keydown', function(e) {
         if (e.key === "Escape") {
-            // 1. Vymazat vrstvu s analýzou (kruh, body, čáry)
             analysisLayer.clearLayers();
-        
-            // 2. Vymazat seznam v sidebaru
             document.getElementById('results-list').innerHTML = '';
-        
-            // 3. Resetovat nápisy
-            document.getElementById('status').innerText = "Klikněte do mapy...";
+            document.getElementById('status').innerText = "Připraveno k analýze...";
             document.getElementById('results-count').innerText = "";
-        
-            // 4. Zavřít otevřené bubliny (popupy) na mapě
             map.closePopup();
-
-            console.log("Výběr zrušen klávesou ESC");
         }
     });
 </script>
+
 </body>
 </html>
