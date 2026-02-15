@@ -46,7 +46,7 @@ public class ImportService {
                 // 1. CHYTRÉ MAPOVÁNÍ NÁZVU
                 JsonNode props = feature.get("properties");
                 String name = "Neznámý objekt";
-                String[] nameFields = {"NAME", "zast_jm", "INFO", "NAZEV", "TRASA"};
+                String[] nameFields = {"NAME", "zast_jm", "OBLAST", "NAZEV", "TRASA"};
                 String[] backupFields = {"ULICE"};
 
                 for (String field : nameFields) {

@@ -169,6 +169,16 @@
 </div>
 
 <script>
+    const categoryColors = {
+    'ZASTÁVKA MHD': '#e74c3c',            // Výrazná červená
+    'ŠKOLSKÉ ZAŘÍZENÍ': '#f1c40f',          // Žlutá
+    'PARKOVÁNÍ': '#2c3e50',      // Tmavě modrá (půlnoční modř)
+    'PARKOVACÍ ZÓNA': '#3498db', // Světle modrá
+    'CYKLOSTEZKA': '#d81b60',     // Tmavě růžová (magentová)
+    'SPORTOVIŠTĚ': '#27ae60',    // Zelená
+    'default': '#7f8c8d'         // Šedá pro zbytek
+    };
+
     // 1. OMEZENÍ MAPY NA OSTRAVU
     const ostravaBounds = L.latLngBounds(
         L.latLng(49.70, 18.10), 
@@ -248,17 +258,25 @@
                 wktParser.read(obj.geometry);
                 const geojson = wktParser.toJson();
 
+                const color = categoryColors[obj.category] || categoryColors['default'];
+
                 L.geoJSON(geojson, {
-                    style: { color: ostravaBlue, weight: 5, opacity: 0.7 },
+                    style: {
+                        color: color,
+                        weight: 4,
+                        opacity: 0.8,
+                        fillColor: color,
+                        fillOpacity: 0.4
+                    },
                     pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
                         radius: 8,
-                        fillColor: ostravaBlue,
-                        color: "#fff",
+                        fillColor: color,
+                        color: "#ffffff",
                         weight: 2,
-                        fillOpacity: 0.9
+                        fillOpacity: 1
                     })
-                }).addTo(analysisLayer).bindPopup(`<b>${obj.name}</b><br><small>${obj.category}</small>`);
-            } catch (e) { console.error("Chyba parsování geometrie", e); }
+                }).addTo(analysisLayer).bindPopup(`<b>${obj.name || 'Bez názvu'}</b><br><small>${obj.category}</small>`);
+            } catch (e) { console.error("Chyba zobrazení", e); }
         });
     }
 
@@ -272,16 +290,17 @@
         item.className = 'result-item';
 
         const displayName = (obj.name && obj.name !== "null" && obj.name !== "") ? obj.name : "Bez názvu";
+        const color = categoryColors[obj.category] || categoryColors['default'];
         
         item.innerHTML = `
-            <span class="category-tag">${obj.category}</span>
+            <span class="category-tag" style ="background-color: ${color}">${obj.category}</span>
             <div style="margin-top:8px; color: #333;"><strong>${displayName}</strong></div>
         `;
         
         item.onclick = () => {
             map.setView([obj.lat, obj.lon], 16);
             L.popup().setLatLng([obj.lat, obj.lon])
-                     .setContent(`<b>${displayName}</b>`)
+                     .setContent(`<b>${displayName}</b><br>${obj.category}<small>`)
                      .openOn(map);
         };
         list.appendChild(item);
