@@ -13,13 +13,37 @@
         #map { flex: 3; height: 100%; position: relative; }
         
         #sidebar { 
-            flex: 1; 
+            width: 350px;
+            height: 100vh; 
             background: #ffffff; 
             border-left: 2px solid #005aa7; 
-            display: flex; 
-            flex-direction: column; 
-            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
-            z-index: 1001;
+            position: relative;
+            transition: margin-right 0.3s ease; 
+            z-index: 2000;
+        }
+        
+        /* schovaný stav */
+        #sidebar.collapsed {
+            margin-right: -350px;
+        }
+
+        /* Šipka */
+        #toggle-sidebar {
+            position: absolute;
+            left: -32px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 60px;
+            background: #005aa7;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 8px 0 0 8px;
+            font-size: 20px;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
         }
 
         /* Levý ovládací panel */
@@ -130,7 +154,7 @@
 
 <div id="left-panel">
     <div class="filter-group">
-        <label>Radius analýzy</label>
+        <label>Radius</label>
         <input type="range" id="radius-slider" min="200" max="2000" step="100" value="500">
         <div style="text-align: center; margin-top: 5px;">
             <span id="radius-val" class="radius-value">500</span> <span style="font-weight: bold; color: #005aa7;">m</span>
@@ -151,15 +175,17 @@
         </div>
     </div>
     <div style="font-size: 0.8em; color: #777;">
-        Tip: Kliknutím do mapy spustíte analýzu. Klávesou <strong>ESC</strong> zrušíte výběr.
+        Tip: Kliknutím do mapy zobrazíte objekty. Klávesou <strong>ESC</strong> zrušíte výběr.
     </div>
 </div>
 
 <div id="map"></div>
 
 <div id="sidebar">
+    <div id="toggle-sidebar" onclick="toggleSidebar()">▶</div>
+
     <div class="header">
-        <h2 style="margin:0; font-size: 1.2em;">Výsledky analýzy</h2>
+        <h2 style="margin:0; font-size: 1.2em;">Nalezené objekty</h2>
     </div>
     <div class="content">
         <div id="status" style="font-style: italic; color: #888; margin-bottom: 10px;">Klikněte do mapy...</div>
@@ -317,6 +343,26 @@
             map.closePopup();
         }
     });
+
+    function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('toggle-sidebar');
+    
+    // Přepne třídu .collapsed
+    sidebar.classList.toggle('collapsed');
+    
+    // Otočí šipku
+    if (sidebar.classList.contains('collapsed')) {
+        toggleBtn.innerText = "◀";
+    } else {
+        toggleBtn.innerText = "▶";
+    }
+    
+    // Zásadní pro Leaflet: Počkat na konec animace (300ms) a přepočítat mapu
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 300);
+}
 </script>
 
 </body>
