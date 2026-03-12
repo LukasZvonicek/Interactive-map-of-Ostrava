@@ -20,6 +20,23 @@
             position: relative;
             transition: margin-right 0.3s ease; 
             z-index: 2000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #result-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            max-height: 100vh;
+        }
+
+        #results-list::-webkit-scrollbar{
+            width: 8px;
+        }
+        #results-list::-webkit-scrollbar-thumb {
+            background: #005aa7;
+            border-radius: 4px;
         }
         
         /* schovaný stav */
@@ -148,6 +165,16 @@
         }
 
         hr { border: 0; border-top: 1px solid #ddd; margin: 15px 0; }
+        .checkbox-list small {
+            color: #666;      /* Šedá barva, aby to nebilo do očí */
+            font-size: 0.85em; /* O něco menší než hlavní text */
+            margin-left: 5px;
+        }
+
+        /* Pokud chceš, aby čísla, která nejsou nula, byla výraznější */
+        .checkbox-list span:not(:empty) {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -164,16 +191,28 @@
     <hr>
     
     <div class="filter-group">
-        <label>Zobrazit kategorie</label>
-        <div class="checkbox-list">
-            <input type="checkbox" class="cat-filter" value="ZASTÁVKA MHD" checked> ZASTÁVKY MHD<br>
-            <input type="checkbox" class="cat-filter" value="ŠKOLSKÉ ZAŘÍZENÍ" checked> ŠKOLSKÁ ZAŘÍZENÍ<br>
-            <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ<br>
-            <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNA" checked> PARKOVACÍ ZÓNY<br>
-            <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKY<br>
-            <input type="checkbox" class="cat-filter" value="SPORTOVIŠTĚ" checked> SPORTOVIŠTĚ
-        </div>
+    <label>Zobrazit kategorie</label>
+    <div class="checkbox-list">
+        <input type="checkbox" class="cat-filter" value="ZASTÁVKA MHD" checked> ZASTÁVKY MHD 
+        <small>(<span id="count-ZASTÁVKA MHD">0</span>)</small><br>
+        
+        <input type="checkbox" class="cat-filter" value="ŠKOLSKÉ ZAŘÍZENÍ" checked> ŠKOLSKÁ ZAŘÍZENÍ 
+        <small>(<span id="count-ŠKOLSKÉ ZAŘÍZENÍ">0</span>)</small><br>
+        
+        <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ 
+        <small>(<span id="count-PARKOVÁNÍ">0</span>)</small><br>
+        
+        <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNA" checked> PARKOVACÍ ZÓNY 
+        <small>(<span id="count-PARKOVACÍ ZÓNA">0</span>)</small><br>
+        
+        <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKY 
+        <small>(<span id="count-CYKLOSTEZKA">0</span>)</small><br>
+        
+        <input type="checkbox" class="cat-filter" value="SPORTOVIŠTĚ" checked> SPORTOVIŠTĚ 
+        <small>(<span id="count-SPORTOVIŠTĚ">0</span>)</small>
     </div>
+</div>
+
     <div style="font-size: 0.8em; color: #777;">
         Tip: Kliknutím do mapy zobrazíte objekty. Klávesou <strong>ESC</strong> zrušíte výběr.
     </div>
@@ -260,6 +299,27 @@
             const url = `http://localhost:8080/api/locations?lat=${lat}&lon=${lng}&radius=${currentRadius}`;
             const response = await fetch(url);
             const data = await response.json();
+
+            // 1. Nejdříve vynulujeme všechna počítadla v legendě
+            document.querySelectorAll('span[id^="count-"]').forEach(span => { span.innerText = "0"});
+
+            const counts = {};
+
+            // 2. Spočítáme výskyty pro každou kategorii v obdržených datech
+            if (data.panelData) {
+                data.panelData.forEach(obj => {
+                    // Počítáme kategorii pro každý unikátní objekt v sidebaru
+                    counts[obj.category] = (counts[obj.category] || 0) + 1;
+                });
+            }
+
+            // 3. Zapíšeme nová čísla do HTML prvků
+            for (const cat in counts) {
+                const element = document.getElementById(`count-${cat}`);
+                if (element) {
+                    element.innerText = counts[cat];
+                }
+            }
 
             // Filtrování dat na straně klienta
             const filteredMapData = data.mapData.filter(obj => activeFilters.includes(obj.category));
