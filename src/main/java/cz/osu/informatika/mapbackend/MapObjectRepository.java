@@ -13,4 +13,6 @@ public interface MapObjectRepository extends JpaRepository<MapObject, Long> {
     @Query(value = "SELECT * FROM map_object m WHERE ST_DWithin(m.geometry::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius)",
             nativeQuery = true)
     List<MapObject> findInRadius(@Param("lat") Double lat, @Param("lon") Double lon, @Param("radius") Double radius);
+
+    List<MapObject> findByNameContainingIgnoreCase(String name);
 }

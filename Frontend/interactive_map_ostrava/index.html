@@ -63,6 +63,48 @@
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
         }
 
+        /*Vyhledávací okno*/
+        #search-container {
+            position: absolute;
+            top: 20px;
+            left: calc(300px + (100% - 300px - 350px) / 2);
+            transform: translateX(-50%);
+            z-index: 1100;
+            width: 400px;
+        }
+
+        #map-search {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #005aa7;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        #autocomplete-results {
+            background: white;
+            border-radius: 15px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .search-item:first-child { border-radius: 15px 15px 0 0; }
+        .search-item:last-child { border-radius: 0 0 15px 15 px; border-bottom: none; }
+
+        .search-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .search-item:hover {
+            background-color: #f0f0f0;
+        }        
+
         /* Levý ovládací panel */
         #left-panel {
             position: absolute;
@@ -178,6 +220,11 @@
     </style>
 </head>
 <body>
+
+<div id="search-container">
+    <input type="text" id="map-search" placeholder="Hledejte adresu nebo objekt..." autocomplete="off">
+    <div id="autocomplete-results"></div>
+</div>
 
 <div id="left-panel">
     <div class="filter-group">
@@ -368,30 +415,30 @@
 
     // 5. AKTUALIZACE SIDEBARU
     function updateSidebar(panelData) {
-    const list = document.getElementById('results-list');
-    list.innerHTML = '';
+        const list = document.getElementById('results-list');
+        list.innerHTML = '';
 
-    panelData.forEach(obj => {
-        const item = document.createElement('div');
-        item.className = 'result-item';
+        panelData.forEach(obj => {
+            const item = document.createElement('div');
+            item.className = 'result-item';
 
-        const displayName = (obj.name && obj.name !== "null" && obj.name !== "") ? obj.name : "Bez názvu";
-        const color = categoryColors[obj.category] || categoryColors['default'];
-        
-        item.innerHTML = `
-            <span class="category-tag" style ="background-color: ${color}">${obj.category}</span>
-            <div style="margin-top:8px; color: #333;"><strong>${displayName}</strong></div>
-        `;
-        
-        item.onclick = () => {
-            map.setView([obj.lat, obj.lon], 16);
-            L.popup().setLatLng([obj.lat, obj.lon])
-                     .setContent(`<b>${displayName}</b><br>${obj.category}<small>`)
-                     .openOn(map);
-        };
-        list.appendChild(item);
-    });
-}
+            const displayName = (obj.name && obj.name !== "null" && obj.name !== "") ? obj.name : "Bez názvu";
+            const color = categoryColors[obj.category] || categoryColors['default'];
+            
+            item.innerHTML = `
+                <span class="category-tag" style ="background-color: ${color}">${obj.category}</span>
+                <div style="margin-top:8px; color: #333;"><strong>${displayName}</strong></div>
+            `;
+            
+            item.onclick = () => {
+                map.setView([obj.lat, obj.lon], 16);
+                L.popup().setLatLng([obj.lat, obj.lon])
+                        .setContent(`<b>${displayName}</b><br>${obj.category}<small>`)
+                        .openOn(map);
+            };
+            list.appendChild(item);
+        });
+    }
 
     // 6. KLÁVESA ESC - RESET
     document.addEventListener('keydown', function(e) {
@@ -405,23 +452,132 @@
     });
 
     function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('toggle-sidebar');
-    
-    // Přepne třídu .collapsed
-    sidebar.classList.toggle('collapsed');
-    
-    // Otočí šipku
-    if (sidebar.classList.contains('collapsed')) {
-        toggleBtn.innerText = "◀";
-    } else {
-        toggleBtn.innerText = "▶";
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        
+        // Přepne třídu .collapsed
+        sidebar.classList.toggle('collapsed');
+        
+        // Otočí šipku
+        if (sidebar.classList.contains('collapsed')) {
+            toggleBtn.innerText = "◀";
+        } else {
+            toggleBtn.innerText = "▶";
+        }
+        
+        // Zásadní pro Leaflet: Počkat na konec animace (300ms) a přepočítat mapu
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
     }
+
+    const searchInput = document.getElementById('map-search');
+    const resultsContainer = document.getElementById('autocomplete-results');
+
+    let searchTimer; // Globální proměnná pro časovač
+
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value;
     
-    // Zásadní pro Leaflet: Počkat na konec animace (300ms) a přepočítat mapu
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 300);
+    // Zrušíme předchozí plánovaný dotaz
+    clearTimeout(searchTimer);
+
+        if (query.length < 3) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        // Naplánujeme dotaz až za 400ms po posledním stisku klávesy
+        searchTimer = setTimeout(async () => {
+            try {
+                console.log("Teď posílám dotaz na server:", query);
+                const addrUrl = `http://localhost:8080/api/search/address?query=${encodeURIComponent(query)}`;
+                const dbUrl = `http://localhost:8080/api/search/objects?query=${encodeURIComponent(query)}`;
+
+                const [addrRes, dbRes] = await Promise.all([fetch(addrUrl), fetch(dbUrl)]);
+                
+                // Pokud Nominatim vrátí 403 (Forbidden), uvidíš to v konzoli
+                if (!addrRes.ok) console.warn("Nominatim nás dočasně blokuje (příliš mnoho dotazů)");
+
+                const addresses = await addrRes.json();
+                const dbObjects = await dbRes.json();
+
+                renderSearchResults(addresses, dbObjects);
+            } catch (err) {
+                console.error("Chyba vyhledávání:", err);
+            }
+        }, 400); 
+    });
+
+    function renderSearchResults(addresses, dbObjects) {
+        const resultsContainer = document.getElementById('autocomplete-results');
+        resultsContainer.innerHTML = '';
+        
+        // Ochrana pro případ, že by data nebyla ve formátu pole
+        const addrList = Array.isArray(addresses) ? addresses : [];
+        const dbList = Array.isArray(dbObjects) ? dbObjects : [];
+
+        // Pokud nemáme žádné výsledky, schováme kontejner a končíme
+        if (addrList.length === 0 && dbList.length === 0) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        // 1. Zpracování adres (Nominatim Proxy)
+        addrList.forEach(addr => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            // Ikona špendlíku v textu pro vizuální odlišení adresy od tvého objektu
+            div.innerHTML = `📍 <i>Adresa:</i> ${addr.display_name}`;
+            
+            div.onclick = () => {
+                const lat = parseFloat(addr.lat);
+                const lon = parseFloat(addr.lon);
+                
+                // Mapa se plynule přesune na souřadnice (zoom 18) bez vytvoření markeru
+                map.flyTo([lat, lon], 18, {
+                    duration: 1.5 // délka animace v sekundách
+                });
+                
+                clearSearch();
+            };
+            resultsContainer.appendChild(div);
+        });
+
+        // 2. Zpracování tvých objektů z DB (Školy, MHD, atd.)
+        dbList.forEach(obj => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            div.innerHTML = `🏢 <b>${obj.name}</b> (${obj.category})`;
+            
+            div.onclick = () => {
+                // Přesun na objekt z tvé databáze
+                map.flyTo([obj.lat, obj.lon], 17);
+                
+                // U tvých objektů necháváme pop-up, aby uživatel věděl, co vybral
+                L.popup()
+                    .setLatLng([obj.lat, obj.lon])
+                    .setContent(`<b>${obj.name}</b><br><small>${obj.category}</small>`)
+                    .openOn(map);
+                    
+                clearSearch();
+            };
+            resultsContainer.appendChild(div);
+        });
+
+        // Zobrazení panelu s výsledky
+        resultsContainer.style.display = 'block';
+    }
+
+    function clearSearch() {
+    const searchInput = document.getElementById('map-search');
+    const resultsContainer = document.getElementById('autocomplete-results');
+    
+    // Vymažeme text v poli
+    searchInput.value = '';
+    // Schováme našeptávač
+    resultsContainer.style.display = 'none';
+    resultsContainer.innerHTML = '';
 }
 </script>
 
