@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Analýza Ostravy - Bakalářská práce</title>
+    <title>Prostředí Ostrav - Bakalářská práce</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/wicket/wicket.js"></script>
@@ -445,7 +445,7 @@
         if (e.key === "Escape") {
             analysisLayer.clearLayers();
             document.getElementById('results-list').innerHTML = '';
-            document.getElementById('status').innerText = "Připraveno k analýze...";
+            document.getElementById('status').innerText = "Klikněte do mapy...";
             document.getElementById('results-count').innerText = "";
             map.closePopup();
         }
@@ -509,75 +509,70 @@ searchInput.addEventListener('input', (e) => {
         }, 400); 
     });
 
-    function renderSearchResults(addresses, dbObjects) {
-        const resultsContainer = document.getElementById('autocomplete-results');
-        resultsContainer.innerHTML = '';
+    function getIconByCategory(category) {
+        if (!category) return '📍';
         
-        // Ochrana pro případ, že by data nebyla ve formátu pole
-        const addrList = Array.isArray(addresses) ? addresses : [];
-        const dbList = Array.isArray(dbObjects) ? dbObjects : [];
-
-        // Pokud nemáme žádné výsledky, schováme kontejner a končíme
-        if (addrList.length === 0 && dbList.length === 0) {
-            resultsContainer.style.display = 'none';
-            return;
-        }
-
-        // 1. Zpracování adres (Nominatim Proxy)
-        addrList.forEach(addr => {
-            const div = document.createElement('div');
-            div.className = 'search-item';
-            // Ikona špendlíku v textu pro vizuální odlišení adresy od tvého objektu
-            div.innerHTML = `📍 <i>Adresa:</i> ${addr.display_name}`;
-            
-            div.onclick = () => {
-                const lat = parseFloat(addr.lat);
-                const lon = parseFloat(addr.lon);
-                
-                // Mapa se plynule přesune na souřadnice (zoom 18) bez vytvoření markeru
-                map.flyTo([lat, lon], 18, {
-                    duration: 1.5 // délka animace v sekundách
-                });
-                
-                clearSearch();
-            };
-            resultsContainer.appendChild(div);
-        });
-
-        // 2. Zpracování tvých objektů z DB (Školy, MHD, atd.)
-        dbList.forEach(obj => {
-            const div = document.createElement('div');
-            div.className = 'search-item';
-            div.innerHTML = `🏢 <b>${obj.name}</b> (${obj.category})`;
-            
-            div.onclick = () => {
-                // Přesun na objekt z tvé databáze
-                map.flyTo([obj.lat, obj.lon], 17);
-                
-                // U tvých objektů necháváme pop-up, aby uživatel věděl, co vybral
-                L.popup()
-                    .setLatLng([obj.lat, obj.lon])
-                    .setContent(`<b>${obj.name}</b><br><small>${obj.category}</small>`)
-                    .openOn(map);
-                    
-                clearSearch();
-            };
-            resultsContainer.appendChild(div);
-        });
-
-        // Zobrazení panelu s výsledky
-        resultsContainer.style.display = 'block';
+        const cat = category.toLowerCase();
+        
+        // Přesné mapování podle tvých kategorií
+        if (cat.includes('zastávka mhd')) return '🚏';
+        if (cat.includes('školské zařízení')) return '🎓';
+        if (cat.includes('parkování') || cat.includes('parkovací zóna')) return '🅿️';
+        if (cat.includes('sportoviště')) return '⚽';
+        if (cat.includes('cyklostezka')) return '🚲';
+        
+        // Výchozí ikona pro ostatní (kdyby se objevilo něco jiného)
+        return '🏢'; 
     }
 
-    function clearSearch() {
-    const searchInput = document.getElementById('map-search');
+function renderSearchResults(addresses, dbObjects) {
     const resultsContainer = document.getElementById('autocomplete-results');
-    
-    // Vymažeme text v poli
-    searchInput.value = '';
-    // Schováme našeptávač
-    resultsContainer.style.display = 'none';
     resultsContainer.innerHTML = '';
+    
+    const addrList = Array.isArray(addresses) ? addresses : [];
+    const dbList = Array.isArray(dbObjects) ? dbObjects : [];
+
+    if (addrList.length === 0 && dbList.length === 0) {
+        resultsContainer.style.display = 'none';
+        return;
+    }
+
+    // 1. Adresy (vždy špendlík)
+    addrList.forEach(addr => {
+        const div = document.createElement('div');
+        div.className = 'search-item';
+        div.innerHTML = `📍 <i>Adresa:</i> ${addr.display_name}`;
+        div.onclick = () => {
+            const lat = parseFloat(addr.lat);
+            const lon = parseFloat(addr.lon);
+            map.flyTo([lat, lon], 18, { duration: 1.5 });
+            clearSearch();
+        };
+        resultsContainer.appendChild(div);
+    });
+
+    // 2. Tvoje objekty z DB (dynamické ikony)
+    dbList.forEach(obj => {
+        const div = document.createElement('div');
+        div.className = 'search-item';
+        
+        // Zde voláme naši novou funkci pro získání ikony
+        const icon = getIconByCategory(obj.category);
+        
+        div.innerHTML = `${icon} <b>${obj.name}</b> <small style="color: #666;">(${obj.category})</small>`;
+        
+        div.onclick = () => {
+            map.flyTo([obj.lat, obj.lon], 17);
+            L.popup()
+                .setLatLng([obj.lat, obj.lon])
+                .setContent(`<b>${obj.name}</b><br><small>${obj.category}</small>`)
+                .openOn(map);
+            clearSearch();
+        };
+        resultsContainer.appendChild(div);
+    });
+
+    resultsContainer.style.display = 'block';
 }
 </script>
 
