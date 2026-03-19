@@ -280,7 +280,7 @@
     </div>
 </div>
 
-<script>
+<script type="module">
     const API_BASE_URL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
     ? 'http://localhost:8080'
     : 'https://interactive-map-of-ostrava.onrender.com';
@@ -347,7 +347,7 @@
         }).addTo(analysisLayer);
 
         try {
-            const url = `http://localhost:8080/api/locations?lat=${lat}&lon=${lng}&radius=${currentRadius}`;
+            const url = `${API_BASE_URL}/api/locations?lat=${lat}&lon=${lng}&radius=${currentRadius}`;
             const response = await fetch(url);
             const data = await response.json();
 
@@ -539,6 +539,11 @@ function renderSearchResults(addresses, dbObjects) {
     if (addrList.length === 0 && dbList.length === 0) {
         resultsContainer.style.display = 'none';
         return;
+    }
+
+    function clearSearch() {
+        document.getElementById('map-search').value = '';
+        document.getElementById('autocomplete-results').style.display = 'none';
     }
 
     // 1. Adresy (vždy špendlík)
