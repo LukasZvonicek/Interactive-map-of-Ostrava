@@ -281,6 +281,10 @@
 </div>
 
 <script>
+    const API_BASE_URL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
+    ? 'http://localhost:8080'
+    : 'https://interactive-map-of-ostrava.onrender.com';
+
     const categoryColors = {
     'ZASTÁVKA MHD': '#e74c3c',            // Výrazná červená
     'ŠKOLSKÉ ZAŘÍZENÍ': '#f1c40f',          // Žlutá
@@ -491,8 +495,8 @@ searchInput.addEventListener('input', (e) => {
         searchTimer = setTimeout(async () => {
             try {
                 console.log("Teď posílám dotaz na server:", query);
-                const addrUrl = `http://localhost:8080/api/search/address?query=${encodeURIComponent(query)}`;
-                const dbUrl = `http://localhost:8080/api/search/objects?query=${encodeURIComponent(query)}`;
+                const addrUrl = `${API_BASE_URL}/api/search/address?query=${encodeURIComponent(query)}`;
+                const dbUrl = `${API_BASE_URL}/api/search/objects?query=${encodeURIComponent(query)}`;
 
                 const [addrRes, dbRes] = await Promise.all([fetch(addrUrl), fetch(dbUrl)]);
                 
