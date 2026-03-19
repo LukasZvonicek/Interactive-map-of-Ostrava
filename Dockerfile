@@ -4,8 +4,8 @@ WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-# 2. Fáze: Spuštění aplikace
-FROM openjdk:17-al2-jdk
+# 2. Fáze: Spuštění aplikace (Eclipse Temurin je sázka na jistotu)
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
