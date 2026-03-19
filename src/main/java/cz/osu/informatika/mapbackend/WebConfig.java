@@ -9,8 +9,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // Povolí všechny cesty (i vyhledávání, i analýzu)
-                .allowedOrigins("http://127.0.0.1:5500", "http://localhost:5500") // Povolí oba zápisy Live Serveru
+        registry.addMapping("/**")
+                .allowedOrigins(
+                        "http://127.0.0.1:5500",
+                        "http://localhost:5500",
+                        "https://tvoje-jmeno.github.io" // Sem dej adresu tvého budoucího webu
+                )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
     }
