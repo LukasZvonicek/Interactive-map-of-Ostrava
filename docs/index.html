@@ -315,7 +315,9 @@
     }).setView([49.835, 18.292], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <b>datový podklad © Statutární město Ostrava</b>, <a href="https://mapy.ostrava.cz">mapy.ostrava.cz</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+                    '<b>datový podklad © Statutární město Ostrava</b>, ' +
+                    '| Analýza: <b>MS Clarity (anonymizováno)</b>'
     }).addTo(map);
 
     let analysisLayer = L.layerGroup().addTo(map);
