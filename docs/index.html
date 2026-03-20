@@ -15,215 +15,75 @@
     <script src="https://unpkg.com/wicket/wicket.js"></script>
     <style>
         body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
-        
-        /* Hlavní rozložení */
-        #map { flex: 3; height: 100%; position: relative; }
+        #map { flex: 3; height: 100%; position: relative; z-index: 1; }
         
         #sidebar { 
-            width: 350px;
-            height: 100vh; 
-            background: #ffffff; 
-            border-left: 2px solid #005aa7; 
-            position: relative;
-            transition: margin-right 0.3s ease; 
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
+            width: 350px; height: 100vh; background: #ffffff; border-left: 2px solid #005aa7; 
+            position: relative; transition: margin-right 0.3s ease; z-index: 2000;
+            display: flex; flex-direction: column;
         }
 
-        #result-list {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 15px;
-            max-height: 100vh;
-        }
+        #results-list { flex-grow: 1; overflow-y: auto; padding: 15px; }
 
-        #results-list::-webkit-scrollbar{
-            width: 8px;
-        }
-        #results-list::-webkit-scrollbar-thumb {
-            background: #005aa7;
-            border-radius: 4px;
-        }
+        #results-list::-webkit-scrollbar{ width: 8px; }
+        #results-list::-webkit-scrollbar-thumb { background: #005aa7; border-radius: 4px; }
         
-        /* schovaný stav */
-        #sidebar.collapsed {
-            margin-right: -350px;
-        }
+        #sidebar.collapsed { margin-right: -350px; }
 
-        /* Šipka */
         #toggle-sidebar {
-            position: absolute;
-            left: -32px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 30px;
-            height: 60px;
-            background: #005aa7;
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border-radius: 8px 0 0 8px;
-            font-size: 20px;
+            position: absolute; left: -32px; top: 50%; transform: translateY(-50%);
+            width: 30px; height: 60px; background: #005aa7; color: #ffffff;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 8px 0 0 8px; font-size: 20px;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
         }
 
-        /*Vyhledávací okno*/
         #search-container {
-            position: absolute;
-            top: 20px;
-            left: calc(300px + (100% - 300px - 350px) / 2);
-            transform: translateX(-50%);
-            z-index: 1100;
-            width: 400px;
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1100; width: 400px;
         }
 
         #map-search {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #005aa7;
-            border-radius: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            width: 100%; padding: 12px 15px; border: 2px solid #005aa7;
+            border-radius: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
         }
 
         #autocomplete-results {
-            background: white;
-            border-radius: 15px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            max-height: 300px;
-            overflow-y: auto;
-            display: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: white; border-radius: 15px; margin-top: 5px;
+            border: 1px solid #ccc; max-height: 300px; overflow-y: auto;
+            display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        .search-item:first-child { border-radius: 15px 15px 0 0; }
-        .search-item:last-child { border-radius: 0 0 15px 15 px; border-bottom: none; }
+        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .search-item:hover { background-color: #f0f0f0; }
 
-        .search-item {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-
-        .search-item:hover {
-            background-color: #f0f0f0;
-        }        
-
-        /* Levý ovládací panel */
         #left-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 240px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            position: absolute; top: 20px; left: 20px; width: 240px;
+            z-index: 1000; background: rgba(255, 255, 255, 0.95);
+            padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.2);
             border-left: 5px solid #005aa7;
         }
 
         .header { background: #005aa7; color: white; padding: 15px; text-align: center; }
         .content { padding: 15px; overflow-y: auto; flex-grow: 1; }
 
-        /* Filtry a Slider */
         .filter-group { margin-bottom: 20px; }
         .filter-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
         .radius-value { font-size: 1.2em; font-weight: bold; color: #005aa7; }
-        /* Základní vzhled lišty (track) */
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            background: #ddd;
-            border-radius: 5px;
-            outline: none;
-            margin: 15px 0;
-        }
-
-        /* Vzhled modré čáry (pro Chrome/Safari) */
-        input[type="range"]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 6px;
-            cursor: pointer;
-            background: #005aa7; /* Ostravská modrá */
-            border-radius: 5px;
-        }
-
-        /* Vzhled samotného kolečka (thumb) pro Chrome/Safari */
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 3px solid #005aa7; /* Modrý okraj kolečka */
-            cursor: pointer;
-            margin-top: -7px; /* Vycentrování vůči čáře */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: transform 0.1s ease;
-        }
-
-        /* Efekt při najetí na kolečko */
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-            background: #f0f7ff;
-        }
-
-        /* Úprava pro Firefox */
-        input[type="range"]::-moz-range-track {
-            background: #005aa7;
-            height: 6px;
-            border-radius: 5px;
-        }
-        input[type="range"]::-moz-range-thumb {
-            height: 18px;
-            width: 18px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 3px solid #005aa7;
-            cursor: pointer;
-        }
-                
-        .checkbox-list { font-size: 0.9em; line-height: 1.6; }
-        .checkbox-list input { margin-right: 8px; }
-
-        /* Položky v pravém seznamu */
-        .result-item {
-            background: #fdfdfd;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            border: 1px solid #eee;
-            transition: all 0.2s;
-        }
-        .result-item:hover { background: #f0f7ff; border-color: #005aa7; transform: translateX(-5px); }
         
-        .category-tag {
-            font-size: 0.7em;
-            padding: 2px 8px;
-            border-radius: 4px;
-            color: white;
-            font-weight: bold;
-            background: #005aa7;
-            text-transform: uppercase;
-        }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #ddd; border-radius: 5px; outline: none; margin: 15px 0; }
+        input[type="range"]::-webkit-slider-runnable-track { background: #005aa7; height: 6px; border-radius: 5px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #ffffff; border: 3px solid #005aa7; margin-top: -7px; cursor: pointer; }
 
+        .checkbox-list { font-size: 0.9em; line-height: 1.6; }
+        .result-item { background: #fdfdfd; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid #eee; transition: all 0.2s; }
+        .result-item:hover { background: #f0f7ff; border-color: #005aa7; transform: translateX(-5px); }
+        .category-tag { font-size: 0.7em; padding: 2px 8px; border-radius: 4px; color: white; font-weight: bold; background: #005aa7; text-transform: uppercase; }
         hr { border: 0; border-top: 1px solid #ddd; margin: 15px 0; }
-        .checkbox-list small {
-            color: #666;      /* Šedá barva, aby to nebilo do očí */
-            font-size: 0.85em; /* O něco menší než hlavní text */
-            margin-left: 5px;
-        }
-
-        /* Pokud chceš, aby čísla, která nejsou nula, byla výraznější */
-        .checkbox-list span:not(:empty) {
-            font-weight: bold;
-        }
+        
+        /* Spinner pro načítání */
+        .spinner { border: 4px solid rgba(0, 90, 167, 0.1); width: 30px; height: 30px; border-radius: 50%; border-left-color: #005aa7; animation: spin 1s linear infinite; margin: 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -239,32 +99,22 @@
             <input type="range" id="radius-slider" min="200" max="2000" step="100" value="500">
             <div style="text-align: center; margin-top: 5px;">
                 <span id="radius-val" class="radius-value">500</span> <span style="font-weight: bold; color: #005aa7;">m</span>
+            </div>
         </div>
-    
-    <hr>
-    
-    <div class="filter-group">
-    <label>Zobrazit kategorie</label>
-    <div class="checkbox-list">
-        <input type="checkbox" class="cat-filter" value="ZASTÁVKA MHD" checked> ZASTÁVKY MHD 
-        <small>(<span id="count-ZASTÁVKA MHD">0</span>)</small><br>
         
-        <input type="checkbox" class="cat-filter" value="ŠKOLSKÉ ZAŘÍZENÍ" checked> ŠKOLSKÁ ZAŘÍZENÍ 
-        <small>(<span id="count-ŠKOLSKÉ ZAŘÍZENÍ">0</span>)</small><br>
+        <hr>
         
-        <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ 
-        <small>(<span id="count-PARKOVÁNÍ">0</span>)</small><br>
-        
-        <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNA" checked> PARKOVACÍ ZÓNY 
-        <small>(<span id="count-PARKOVACÍ ZÓNA">0</span>)</small><br>
-        
-        <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKY 
-        <small>(<span id="count-CYKLOSTEZKA">0</span>)</small><br>
-        
-        <input type="checkbox" class="cat-filter" value="SPORTOVIŠTĚ" checked> SPORTOVIŠTĚ 
-        <small>(<span id="count-SPORTOVIŠTĚ">0</span>)</small>
-    </div>
-    </div>
+        <div class="filter-group">
+            <label>Zobrazit kategorie</label>
+            <div class="checkbox-list">
+                <input type="checkbox" class="cat-filter" value="ZASTÁVKA MHD" checked> ZASTÁVKY MHD <small>(<span id="count-ZASTÁVKA MHD">0</span>)</small><br>
+                <input type="checkbox" class="cat-filter" value="ŠKOLSKÉ ZAŘÍZENÍ" checked> ŠKOLSKÁ ZAŘÍZENÍ <small>(<span id="count-ŠKOLSKÉ ZAŘÍZENÍ">0</span>)</small><br>
+                <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ <small>(<span id="count-PARKOVÁNÍ">0</span>)</small><br>
+                <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNA" checked> PARKOVACÍ ZÓNY <small>(<span id="count-PARKOVACÍ ZÓNA">0</span>)</small><br>
+                <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKY <small>(<span id="count-CYKLOSTEZKA">0</span>)</small><br>
+                <input type="checkbox" class="cat-filter" value="SPORTOVIŠTĚ" checked> SPORTOVIŠTĚ <small>(<span id="count-SPORTOVIŠTĚ">0</span>)</small>
+            </div>
+        </div>
 
         <div style="font-size: 0.8em; color: #777;">
             Tip: Kliknutím do mapy zobrazíte objekty. Klávesou <strong>ESC</strong> zrušíte výběr.
@@ -275,7 +125,6 @@
 
     <div id="sidebar">
         <div id="toggle-sidebar" onclick="toggleSidebar()">▶</div>
-
         <div class="header">
             <h2 style="margin:0; font-size: 1.2em;">Nalezené objekty</h2>
         </div>
@@ -286,42 +135,36 @@
         </div>
     </div>
 
+    <div style="position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255, 255, 255, 0.8); color: #888; font-size: 0.65em; text-align: center; padding: 4px 0; z-index: 5000; pointer-events: none; border-top: 1px solid #eee;">
+        Analýza uživatelského chování: <strong>Microsoft Clarity</strong> (Bakalářská práce - Ostravská univerzita). Data jsou anonymizována.
+    </div>
+
 <script type="module">
     const API_BASE_URL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
     ? 'http://localhost:8080'
     : 'https://interactive-map-of-ostrava.onrender.com';
 
     const categoryColors = {
-    'ZASTÁVKA MHD': '#e74c3c',            // Výrazná červená
-    'ŠKOLSKÉ ZAŘÍZENÍ': '#f1c40f',          // Žlutá
-    'PARKOVÁNÍ': '#2c3e50',      // Tmavě modrá (půlnoční modř)
-    'PARKOVACÍ ZÓNA': '#3498db', // Světle modrá
-    'CYKLOSTEZKA': '#d81b60',     // Tmavě růžová (magentová)
-    'SPORTOVIŠTĚ': '#27ae60',    // Zelená
-    'default': '#7f8c8d'         // Šedá pro zbytek
+        'ZASTÁVKA MHD': '#e74c3c',
+        'ŠKOLSKÉ ZAŘÍZENÍ': '#f1c40f',
+        'PARKOVÁNÍ': '#2c3e50',
+        'PARKOVACÍ ZÓNA': '#3498db',
+        'CYKLOSTEZKA': '#d81b60',
+        'SPORTOVIŠTĚ': '#27ae60',
+        'default': '#7f8c8d'
     };
 
-    // 1. OMEZENÍ MAPY NA OSTRAVU
-    const ostravaBounds = L.latLngBounds(
-        L.latLng(49.70, 18.10), 
-        L.latLng(49.95, 18.45)
-    );
-
-    const map = L.map('map', {
-        maxBounds: ostravaBounds,
-        maxBoundsViscosity: 1.0,
-        minZoom: 11
-    }).setView([49.835, 18.292], 13);
+    const ostravaBounds = L.latLngBounds(L.latLng(49.70, 18.10), L.latLng(49.95, 18.45));
+    const map = L.map('map', { maxBounds: ostravaBounds, maxBoundsViscosity: 1.0, minZoom: 11 }).setView([49.835, 18.292], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <b>datový podklad © Statutární město Ostrava</b>, <a href="https://mapy.ostrava.cz">mapy.ostrava.cz</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>'
+        attribution: '&copy; OpenStreetMap, datový podklad © Statutární město Ostrava'
     }).addTo(map);
 
     let analysisLayer = L.layerGroup().addTo(map);
     const wktParser = new Wkt.Wkt();
     const ostravaBlue = '#005aa7';
 
-    // 2. OVLÁDÁNÍ RADIUSU
     let currentRadius = 500;
     const slider = document.getElementById('radius-slider');
     const radiusLabel = document.getElementById('radius-val');
@@ -331,54 +174,31 @@
         radiusLabel.innerText = currentRadius;
     };
 
-    // 3. ANALÝZA PO KLIKNUTÍ
     map.on('click', async function(e) {
         const { lat, lng } = e.latlng;
-        
-        // Získání aktivních filtrů
-        const activeFilters = Array.from(document.querySelectorAll('.cat-filter:checked'))
-                                   .map(cb => cb.value);
+        const activeFilters = Array.from(document.querySelectorAll('.cat-filter:checked')).map(cb => cb.value);
 
         analysisLayer.clearLayers();
-        document.getElementById('status').innerText = "Komunikuji se serverem...";
+        document.getElementById('status').innerHTML = '<div class="spinner"></div> Komunikuji se serverem...';
         document.getElementById('results-list').innerHTML = '';
 
-        // Vykreslení kruhu analýzy
-        L.circle([lat, lng], { 
-            radius: currentRadius, 
-            color: ostravaBlue, 
-            weight: 2,
-            fillColor: ostravaBlue, 
-            fillOpacity: 0.1 
-        }).addTo(analysisLayer);
+        L.circle([lat, lng], { radius: currentRadius, color: ostravaBlue, weight: 2, fillColor: ostravaBlue, fillOpacity: 0.1 }).addTo(analysisLayer);
 
         try {
             const url = `${API_BASE_URL}/api/locations?lat=${lat}&lon=${lng}&radius=${currentRadius}`;
             const response = await fetch(url);
             const data = await response.json();
 
-            // 1. Nejdříve vynulujeme všechna počítadla v legendě
             document.querySelectorAll('span[id^="count-"]').forEach(span => { span.innerText = "0"});
-
             const counts = {};
-
-            // 2. Spočítáme výskyty pro každou kategorii v obdržených datech
             if (data.panelData) {
-                data.panelData.forEach(obj => {
-                    // Počítáme kategorii pro každý unikátní objekt v sidebaru
-                    counts[obj.category] = (counts[obj.category] || 0) + 1;
-                });
+                data.panelData.forEach(obj => { counts[obj.category] = (counts[obj.category] || 0) + 1; });
             }
-
-            // 3. Zapíšeme nová čísla do HTML prvků
             for (const cat in counts) {
                 const element = document.getElementById(`count-${cat}`);
-                if (element) {
-                    element.innerText = counts[cat];
-                }
+                if (element) element.innerText = counts[cat];
             }
 
-            // Filtrování dat na straně klienta
             const filteredMapData = data.mapData.filter(obj => activeFilters.includes(obj.category));
             const filteredPanelData = data.panelData.filter(obj => activeFilters.includes(obj.category));
 
@@ -387,71 +207,45 @@
             
             document.getElementById('status').innerText = "";
             document.getElementById('results-count').innerText = `Nalezeno prvků: ${filteredPanelData.length}`;
-            
         } catch (err) {
-            console.error(err);
             document.getElementById('status').innerText = "Chyba: Server neodpovídá.";
         }
     });
 
-    // 4. VYKRESLENÍ DO MAPY (BODY A LINIE)
     function displayOnMap(mapData) {
         mapData.forEach(obj => {
             try {
                 wktParser.read(obj.geometry);
                 const geojson = wktParser.toJson();
-
                 const color = categoryColors[obj.category] || categoryColors['default'];
-
                 L.geoJSON(geojson, {
-                    style: {
-                        color: color,
-                        weight: 4,
-                        opacity: 0.8,
-                        fillColor: color,
-                        fillOpacity: 0.4
-                    },
-                    pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-                        radius: 8,
-                        fillColor: color,
-                        color: "#ffffff",
-                        weight: 2,
-                        fillOpacity: 1
-                    })
+                    style: { color: color, weight: 4, opacity: 0.8, fillColor: color, fillOpacity: 0.4 },
+                    pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 1 })
                 }).addTo(analysisLayer).bindPopup(`<b>${obj.name || 'Bez názvu'}</b><br><small>${obj.category}</small>`);
-            } catch (e) { console.error("Chyba zobrazení", e); }
+            } catch (e) { console.error(e); }
         });
     }
 
-    // 5. AKTUALIZACE SIDEBARU
     function updateSidebar(panelData) {
         const list = document.getElementById('results-list');
         list.innerHTML = '';
-
         panelData.forEach(obj => {
             const item = document.createElement('div');
             item.className = 'result-item';
-
-            const displayName = (obj.name && obj.name !== "null" && obj.name !== "") ? obj.name : "Bez názvu";
             const color = categoryColors[obj.category] || categoryColors['default'];
-            
             item.innerHTML = `
-                <span class="category-tag" style ="background-color: ${color}">${obj.category}</span>
-                <div style="margin-top:8px; color: #333;"><strong>${displayName}</strong></div>
+                <span class="category-tag" style="background-color: ${color}">${obj.category}</span>
+                <div style="margin-top:8px; color: #333;"><strong>${obj.name || 'Bez názvu'}</strong></div>
             `;
-            
             item.onclick = () => {
                 map.setView([obj.lat, obj.lon], 16);
-                L.popup().setLatLng([obj.lat, obj.lon])
-                        .setContent(`<b>${displayName}</b><br>${obj.category}<small>`)
-                        .openOn(map);
+                L.popup().setLatLng([obj.lat, obj.lon]).setContent(`<b>${obj.name || 'Bez názvu'}</b><br>${obj.category}`).openOn(map);
             };
             list.appendChild(item);
         });
     }
 
-    // 6. KLÁVESA ESC - RESET
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', (e) => {
         if (e.key === "Escape") {
             analysisLayer.clearLayers();
             document.getElementById('results-list').innerHTML = '';
@@ -461,134 +255,67 @@
         }
     });
 
-    function toggleSidebar() {
+    window.toggleSidebar = function() {
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggle-sidebar');
-        
-        // Přepne třídu .collapsed
         sidebar.classList.toggle('collapsed');
-        
-        // Otočí šipku
-        if (sidebar.classList.contains('collapsed')) {
-            toggleBtn.innerText = "◀";
-        } else {
-            toggleBtn.innerText = "▶";
-        }
-        
-        // Zásadní pro Leaflet: Počkat na konec animace (300ms) a přepočítat mapu
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 300);
-    }
+        toggleBtn.innerText = sidebar.classList.contains('collapsed') ? "◀" : "▶";
+        setTimeout(() => map.invalidateSize(), 300);
+    };
 
     const searchInput = document.getElementById('map-search');
     const resultsContainer = document.getElementById('autocomplete-results');
+    let searchTimer;
 
-    let searchTimer; // Globální proměnná pro časovač
-
-searchInput.addEventListener('input', (e) => {
-    const query = e.target.value;
-    
-    // Zrušíme předchozí plánovaný dotaz
-    clearTimeout(searchTimer);
-
-        if (query.length < 3) {
-            resultsContainer.style.display = 'none';
-            return;
-        }
-
-        // Naplánujeme dotaz až za 400ms po posledním stisku klávesy
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value;
+        clearTimeout(searchTimer);
+        if (query.length < 3) { resultsContainer.style.display = 'none'; return; }
         searchTimer = setTimeout(async () => {
             try {
-                console.log("Teď posílám dotaz na server:", query);
                 const addrUrl = `${API_BASE_URL}/api/search/address?query=${encodeURIComponent(query)}`;
                 const dbUrl = `${API_BASE_URL}/api/search/objects?query=${encodeURIComponent(query)}`;
-
                 const [addrRes, dbRes] = await Promise.all([fetch(addrUrl), fetch(dbUrl)]);
-                
-                // Pokud Nominatim vrátí 403 (Forbidden), uvidíš to v konzoli
-                if (!addrRes.ok) console.warn("Nominatim nás dočasně blokuje (příliš mnoho dotazů)");
-
-                const addresses = await addrRes.json();
-                const dbObjects = await dbRes.json();
-
-                renderSearchResults(addresses, dbObjects);
-            } catch (err) {
-                console.error("Chyba vyhledávání:", err);
-            }
-        }, 400); 
+                renderSearchResults(await addrRes.json(), await dbRes.json());
+            } catch (err) { console.error(err); }
+        }, 400);
     });
+
+    function renderSearchResults(addresses, dbObjects) {
+        resultsContainer.innerHTML = '';
+        const addrList = Array.isArray(addresses) ? addresses : [];
+        const dbList = Array.isArray(dbObjects) ? dbObjects : [];
+        if (addrList.length === 0 && dbList.length === 0) { resultsContainer.style.display = 'none'; return; }
+
+        const clearSearch = () => { searchInput.value = ''; resultsContainer.style.display = 'none'; };
+
+        addrList.forEach(addr => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            div.innerHTML = `📍 <i>Adresa:</i> ${addr.display_name}`;
+            div.onclick = () => { map.flyTo([addr.lat, addr.lon], 18); clearSearch(); };
+            resultsContainer.appendChild(div);
+        });
+
+        dbList.forEach(obj => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            div.innerHTML = `${getIconByCategory(obj.category)} <b>${obj.name}</b> <small>(${obj.category})</small>`;
+            div.onclick = () => { map.flyTo([obj.lat, obj.lon], 17); L.popup().setLatLng([obj.lat, obj.lon]).setContent(`<b>${obj.name}</b>`).openOn(map); clearSearch(); };
+            resultsContainer.appendChild(div);
+        });
+        resultsContainer.style.display = 'block';
+    }
 
     function getIconByCategory(category) {
-        if (!category) return '📍';
-        
-        const cat = category.toLowerCase();
-        
-        // Přesné mapování podle tvých kategorií
+        const cat = (category || "").toLowerCase();
         if (cat.includes('zastávka mhd')) return '🚏';
         if (cat.includes('školské zařízení')) return '🎓';
-        if (cat.includes('parkování') || cat.includes('parkovací zóna')) return '🅿️';
+        if (cat.includes('parkování')) return '🅿️';
         if (cat.includes('sportoviště')) return '⚽';
         if (cat.includes('cyklostezka')) return '🚲';
-        
-        // Výchozí ikona pro ostatní (kdyby se objevilo něco jiného)
-        return '🏢'; 
+        return '🏢';
     }
-
-function renderSearchResults(addresses, dbObjects) {
-    const resultsContainer = document.getElementById('autocomplete-results');
-    resultsContainer.innerHTML = '';
-    
-    const addrList = Array.isArray(addresses) ? addresses : [];
-    const dbList = Array.isArray(dbObjects) ? dbObjects : [];
-
-    if (addrList.length === 0 && dbList.length === 0) {
-        resultsContainer.style.display = 'none';
-        return;
-    }
-
-    function clearSearch() {
-        document.getElementById('map-search').value = '';
-        document.getElementById('autocomplete-results').style.display = 'none';
-    }
-
-    // 1. Adresy (vždy špendlík)
-    addrList.forEach(addr => {
-        const div = document.createElement('div');
-        div.className = 'search-item';
-        div.innerHTML = `📍 <i>Adresa:</i> ${addr.display_name}`;
-        div.onclick = () => {
-            const lat = parseFloat(addr.lat);
-            const lon = parseFloat(addr.lon);
-            map.flyTo([lat, lon], 18, { duration: 1.5 });
-            clearSearch();
-        };
-        resultsContainer.appendChild(div);
-    });
-
-    // 2. Tvoje objekty z DB (dynamické ikony)
-    dbList.forEach(obj => {
-        const div = document.createElement('div');
-        div.className = 'search-item';
-        
-        // Zde voláme naši novou funkci pro získání ikony
-        const icon = getIconByCategory(obj.category);
-        
-        div.innerHTML = `${icon} <b>${obj.name}</b> <small style="color: #666;">(${obj.category})</small>`;
-        
-        div.onclick = () => {
-            map.flyTo([obj.lat, obj.lon], 17);
-            L.popup()
-                .setLatLng([obj.lat, obj.lon])
-                .setContent(`<b>${obj.name}</b><br><small>${obj.category}</small>`)
-                .openOn(map);
-            clearSearch();
-        };
-        resultsContainer.appendChild(div);
-    });
-
-    resultsContainer.style.display = 'block';
-}
 </script>
 </body>
 </html>
