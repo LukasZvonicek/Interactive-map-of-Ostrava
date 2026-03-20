@@ -14,48 +14,33 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/wicket/wicket.js"></script>
     <style>
-        body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
-        #map { flex: 3; height: 100%; position: relative; z-index: 1; }
+        /* ZÁKLADNÍ ROZLOŽENÍ */
+        body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         
+        /* MAPA - musí mít flex: 1, aby vyplnila zbytek okna */
+        #map-container { flex: 1; position: relative; height: 100%; }
+        #map { width: 100%; height: 100%; z-index: 1; }
+
+        /* SIDEBAR (PRAVÝ) */
         #sidebar { 
-            width: 350px; height: 100vh; background: #ffffff; border-left: 2px solid #005aa7; 
-            position: relative; transition: margin-right 0.3s ease; z-index: 2000;
-            display: flex; flex-direction: column;
+            width: 350px; height: 100vh; background: white; border-left: 2px solid #005aa7; 
+            display: flex; flex-direction: column; transition: margin-right 0.3s ease; z-index: 2000;
         }
-
-        #results-list { flex-grow: 1; overflow-y: auto; padding: 15px; }
-
-        #results-list::-webkit-scrollbar{ width: 8px; }
-        #results-list::-webkit-scrollbar-thumb { background: #005aa7; border-radius: 4px; }
-        
         #sidebar.collapsed { margin-right: -350px; }
 
-        #toggle-sidebar {
-            position: absolute; left: -32px; top: 50%; transform: translateY(-50%);
-            width: 30px; height: 60px; background: #005aa7; color: #ffffff;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; border-radius: 8px 0 0 8px; font-size: 20px;
-            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-        }
-
+        /* PRVKY NAD MAPOU (ABSOLUTNÍ) */
         #search-container {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             z-index: 1100; width: 400px;
         }
-
         #map-search {
             width: 100%; padding: 12px 15px; border: 2px solid #005aa7;
-            border-radius: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border-radius: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); outline: none;
         }
-
         #autocomplete-results {
             background: white; border-radius: 15px; margin-top: 5px;
-            border: 1px solid #ccc; max-height: 300px; overflow-y: auto;
-            display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid #ccc; max-height: 300px; overflow-y: auto; display: none;
         }
-
-        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
-        .search-item:hover { background-color: #f0f0f0; }
 
         #left-panel {
             position: absolute; top: 20px; left: 20px; width: 240px;
@@ -64,258 +49,195 @@
             border-left: 5px solid #005aa7;
         }
 
+        /* OSTATNÍ STYLY */
         .header { background: #005aa7; color: white; padding: 15px; text-align: center; }
         .content { padding: 15px; overflow-y: auto; flex-grow: 1; }
-
-        .filter-group { margin-bottom: 20px; }
-        .filter-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
-        .radius-value { font-size: 1.2em; font-weight: bold; color: #005aa7; }
+        .result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .result-item:hover { background: #f0f7ff; }
+        .category-tag { font-size: 0.7em; padding: 2px 8px; border-radius: 4px; color: white; background: #005aa7; }
+        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .search-item:hover { background: #f0f0f0; }
         
-        input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #ddd; border-radius: 5px; outline: none; margin: 15px 0; }
-        input[type="range"]::-webkit-slider-runnable-track { background: #005aa7; height: 6px; border-radius: 5px; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #ffffff; border: 3px solid #005aa7; margin-top: -7px; cursor: pointer; }
+        #toggle-sidebar {
+            position: absolute; left: -32px; top: 50%; width: 30px; height: 60px;
+            background: #005aa7; color: white; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; border-radius: 8px 0 0 8px; z-index: 2001;
+        }
 
-        .checkbox-list { font-size: 0.9em; line-height: 1.6; }
-        .result-item { background: #fdfdfd; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid #eee; transition: all 0.2s; }
-        .result-item:hover { background: #f0f7ff; border-color: #005aa7; transform: translateX(-5px); }
-        .category-tag { font-size: 0.7em; padding: 2px 8px; border-radius: 4px; color: white; font-weight: bold; background: #005aa7; text-transform: uppercase; }
-        hr { border: 0; border-top: 1px solid #ddd; margin: 15px 0; }
-        
-        /* Spinner pro načítání */
-        .spinner { border: 4px solid rgba(0, 90, 167, 0.1); width: 30px; height: 30px; border-radius: 50%; border-left-color: #005aa7; animation: spin 1s linear infinite; margin: 10px auto; }
+        .spinner { border: 4px solid rgba(0, 90, 167, 0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #005aa7; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="search-container">
-        <input type="text" id="map-search" placeholder="Hledejte adresu nebo objekt..." autocomplete="off">
-        <div id="autocomplete-results"></div>
-    </div>
+    <div id="map-container">
+        <div id="search-container">
+            <input type="text" id="map-search" placeholder="Hledejte adresu nebo objekt..." autocomplete="off">
+            <div id="autocomplete-results"></div>
+        </div>
 
-    <div id="left-panel">
-        <div class="filter-group">
-            <label>Radius</label>
-            <input type="range" id="radius-slider" min="200" max="2000" step="100" value="500">
-            <div style="text-align: center; margin-top: 5px;">
-                <span id="radius-val" class="radius-value">500</span> <span style="font-weight: bold; color: #005aa7;">m</span>
+        <div id="left-panel">
+            <div class="filter-group">
+                <label><b>Radius:</b> <span id="radius-val">500</span> m</label>
+                <input type="range" id="radius-slider" min="200" max="2000" step="100" value="500" style="width:100%">
             </div>
-        </div>
-        
-        <hr>
-        
-        <div class="filter-group">
-            <label>Zobrazit kategorie</label>
-            <div class="checkbox-list">
-                <input type="checkbox" class="cat-filter" value="ZASTÁVKA MHD" checked> ZASTÁVKY MHD <small>(<span id="count-ZASTÁVKA MHD">0</span>)</small><br>
-                <input type="checkbox" class="cat-filter" value="ŠKOLSKÉ ZAŘÍZENÍ" checked> ŠKOLSKÁ ZAŘÍZENÍ <small>(<span id="count-ŠKOLSKÉ ZAŘÍZENÍ">0</span>)</small><br>
-                <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ <small>(<span id="count-PARKOVÁNÍ">0</span>)</small><br>
-                <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNA" checked> PARKOVACÍ ZÓNY <small>(<span id="count-PARKOVACÍ ZÓNA">0</span>)</small><br>
-                <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKY <small>(<span id="count-CYKLOSTEZKA">0</span>)</small><br>
-                <input type="checkbox" class="cat-filter" value="SPORTOVIŠTĚ" checked> SPORTOVIŠTĚ <small>(<span id="count-SPORTOVIŠTĚ">0</span>)</small>
+            <hr>
+            <div class="filter-group">
+                <label><b>Zobrazit kategorie:</b></label>
+                <div style="font-size: 0.85em; line-height: 1.8;">
+                    <input type="checkbox" class="cat-filter" value="ZASTÁVKA MHD" checked> ZASTÁVKY MHD (<span id="count-ZASTÁVKA MHD">0</span>)<br>
+                    <input type="checkbox" class="cat-filter" value="ŠKOLSKÉ ZAŘÍZENÍ" checked> ŠKOLSKÁ ZAŘÍZENÍ (<span id="count-ŠKOLSKÉ ZAŘÍZENÍ">0</span>)<br>
+                    <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ (<span id="count-PARKOVÁNÍ">0</span>)<br>
+                    <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNA" checked> PARKOVACÍ ZÓNY (<span id="count-PARKOVACÍ ZÓNA">0</span>)<br>
+                    <input type="checkbox" class="cat-filter" value="CYKLOSTEZKA" checked> CYKLOSTEZKY (<span id="count-CYKLOSTEZKA">0</span>)<br>
+                    <input type="checkbox" class="cat-filter" value="SPORTOVIŠTĚ" checked> SPORTOVIŠTĚ (<span id="count-SPORTOVIŠTĚ">0</span>)
+                </div>
             </div>
+            <p style="font-size: 0.75em; color: #666; margin-top: 15px;">Tip: Kliknutím do mapy analyzujete okolí. ESC pro reset.</p>
         </div>
 
-        <div style="font-size: 0.8em; color: #777;">
-            Tip: Kliknutím do mapy zobrazíte objekty. Klávesou <strong>ESC</strong> zrušíte výběr.
-        </div>
+        <div id="map"></div>
     </div>
-
-    <div id="map"></div>
 
     <div id="sidebar">
         <div id="toggle-sidebar" onclick="toggleSidebar()">▶</div>
         <div class="header">
-            <h2 style="margin:0; font-size: 1.2em;">Nalezené objekty</h2>
+            <h2 style="margin:0; font-size: 1.1em;">Nalezené objekty</h2>
         </div>
         <div class="content">
             <div id="status" style="font-style: italic; color: #888; margin-bottom: 10px;">Klikněte do mapy...</div>
-            <div id="results-count" style="margin-bottom: 15px; font-weight: bold; color: #005aa7;"></div>
+            <div id="results-count" style="font-weight: bold; color: #005aa7; margin-bottom: 10px;"></div>
             <div id="results-list"></div>
         </div>
     </div>
 
-    <div style="position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255, 255, 255, 0.8); color: #888; font-size: 0.65em; text-align: center; padding: 4px 0; z-index: 5000; pointer-events: none; border-top: 1px solid #eee;">
-        Analýza uživatelského chování: <strong>Microsoft Clarity</strong> (Bakalářská práce - Ostravská univerzita). Data jsou anonymizována.
+    <div style="position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,255,255,0.8); color: #777; font-size: 10px; text-align: center; padding: 3px; z-index: 5000; border-top: 1px solid #ddd; pointer-events: none;">
+        Analýza webu: Microsoft Clarity (Bakalářská práce - Ostravská univerzita). Data jsou anonymizována.
     </div>
 
 <script type="module">
     const API_BASE_URL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-    ? 'http://localhost:8080'
-    : 'https://interactive-map-of-ostrava.onrender.com';
+        ? 'http://localhost:8080'
+        : 'https://interactive-map-of-ostrava.onrender.com';
 
     const categoryColors = {
-        'ZASTÁVKA MHD': '#e74c3c',
-        'ŠKOLSKÉ ZAŘÍZENÍ': '#f1c40f',
-        'PARKOVÁNÍ': '#2c3e50',
-        'PARKOVACÍ ZÓNA': '#3498db',
-        'CYKLOSTEZKA': '#d81b60',
-        'SPORTOVIŠTĚ': '#27ae60',
-        'default': '#7f8c8d'
+        'ZASTÁVKA MHD': '#e74c3c', 'ŠKOLSKÉ ZAŘÍZENÍ': '#f1c40f', 'PARKOVÁNÍ': '#2c3e50',
+        'PARKOVACÍ ZÓNA': '#3498db', 'CYKLOSTEZKA': '#d81b60', 'SPORTOVIŠTĚ': '#27ae60', 'default': '#7f8c8d'
     };
 
-    const ostravaBounds = L.latLngBounds(L.latLng(49.70, 18.10), L.latLng(49.95, 18.45));
-    const map = L.map('map', { maxBounds: ostravaBounds, maxBoundsViscosity: 1.0, minZoom: 11 }).setView([49.835, 18.292], 13);
+    const map = L.map('map', { 
+        maxBounds: L.latLngBounds(L.latLng(49.70, 18.10), L.latLng(49.95, 18.45)), 
+        maxBoundsViscosity: 1.0, minZoom: 11 
+    }).setView([49.835, 18.292], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap, datový podklad © Statutární město Ostrava'
+        attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     let analysisLayer = L.layerGroup().addTo(map);
     const wktParser = new Wkt.Wkt();
-    const ostravaBlue = '#005aa7';
 
-    let currentRadius = 500;
+    // RADIUS SLIDER
     const slider = document.getElementById('radius-slider');
     const radiusLabel = document.getElementById('radius-val');
+    slider.oninput = () => radiusLabel.innerText = slider.value;
 
-    slider.oninput = function() {
-        currentRadius = this.value;
-        radiusLabel.innerText = currentRadius;
-    };
-
-    map.on('click', async function(e) {
+    // ANALÝZA PO KLIKNUTÍ
+    map.on('click', async (e) => {
         const { lat, lng } = e.latlng;
+        const radius = slider.value;
         const activeFilters = Array.from(document.querySelectorAll('.cat-filter:checked')).map(cb => cb.value);
 
         analysisLayer.clearLayers();
-        document.getElementById('status').innerHTML = '<div class="spinner"></div> Komunikuji se serverem...';
+        document.getElementById('status').innerHTML = '<div class="spinner"></div> Načítám data...';
         document.getElementById('results-list').innerHTML = '';
 
-        L.circle([lat, lng], { radius: currentRadius, color: ostravaBlue, weight: 2, fillColor: ostravaBlue, fillOpacity: 0.1 }).addTo(analysisLayer);
+        L.circle([lat, lng], { radius: radius, color: '#005aa7', weight: 2, fillOpacity: 0.1 }).addTo(analysisLayer);
 
         try {
-            const url = `${API_BASE_URL}/api/locations?lat=${lat}&lon=${lng}&radius=${currentRadius}`;
-            const response = await fetch(url);
-            const data = await response.json();
+            const res = await fetch(`${API_BASE_URL}/api/locations?lat=${lat}&lon=${lng}&radius=${radius}`);
+            const data = await res.json();
 
-            document.querySelectorAll('span[id^="count-"]').forEach(span => { span.innerText = "0"});
+            // Počítadla
+            document.querySelectorAll('span[id^="count-"]').forEach(s => s.innerText = "0");
             const counts = {};
-            if (data.panelData) {
-                data.panelData.forEach(obj => { counts[obj.category] = (counts[obj.category] || 0) + 1; });
-            }
+            data.panelData.forEach(obj => counts[obj.category] = (counts[obj.category] || 0) + 1);
             for (const cat in counts) {
-                const element = document.getElementById(`count-${cat}`);
-                if (element) element.innerText = counts[cat];
+                const el = document.getElementById(`count-${cat}`);
+                if (el) el.innerText = counts[cat];
             }
 
-            const filteredMapData = data.mapData.filter(obj => activeFilters.includes(obj.category));
-            const filteredPanelData = data.panelData.filter(obj => activeFilters.includes(obj.category));
+            // Filtrování a zobrazení
+            const filteredMap = data.mapData.filter(o => activeFilters.includes(o.category));
+            const filteredPanel = data.panelData.filter(o => activeFilters.includes(o.category));
 
-            displayOnMap(filteredMapData);
-            updateSidebar(filteredPanelData);
-            
-            document.getElementById('status').innerText = "";
-            document.getElementById('results-count').innerText = `Nalezeno prvků: ${filteredPanelData.length}`;
-        } catch (err) {
-            document.getElementById('status').innerText = "Chyba: Server neodpovídá.";
-        }
-    });
-
-    function displayOnMap(mapData) {
-        mapData.forEach(obj => {
-            try {
+            filteredMap.forEach(obj => {
                 wktParser.read(obj.geometry);
-                const geojson = wktParser.toJson();
-                const color = categoryColors[obj.category] || categoryColors['default'];
-                L.geoJSON(geojson, {
-                    style: { color: color, weight: 4, opacity: 0.8, fillColor: color, fillOpacity: 0.4 },
-                    pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 1 })
-                }).addTo(analysisLayer).bindPopup(`<b>${obj.name || 'Bez názvu'}</b><br><small>${obj.category}</small>`);
-            } catch (e) { console.error(e); }
-        });
-    }
+                const color = categoryColors[obj.category] || categoryColors.default;
+                L.geoJSON(wktParser.toJson(), {
+                    style: { color: color, weight: 4, fillOpacity: 0.4 },
+                    pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 1 })
+                }).addTo(analysisLayer).bindPopup(`<b>${obj.name || 'Bez názvu'}</b><br>${obj.category}`);
+            });
 
-    function updateSidebar(panelData) {
-        const list = document.getElementById('results-list');
-        list.innerHTML = '';
-        panelData.forEach(obj => {
-            const item = document.createElement('div');
-            item.className = 'result-item';
-            const color = categoryColors[obj.category] || categoryColors['default'];
-            item.innerHTML = `
-                <span class="category-tag" style="background-color: ${color}">${obj.category}</span>
-                <div style="margin-top:8px; color: #333;"><strong>${obj.name || 'Bez názvu'}</strong></div>
-            `;
-            item.onclick = () => {
-                map.setView([obj.lat, obj.lon], 16);
-                L.popup().setLatLng([obj.lat, obj.lon]).setContent(`<b>${obj.name || 'Bez názvu'}</b><br>${obj.category}`).openOn(map);
-            };
-            list.appendChild(item);
-        });
-    }
+            const list = document.getElementById('results-list');
+            filteredPanel.forEach(obj => {
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `<span class="category-tag" style="background:${categoryColors[obj.category]}">${obj.category}</span><br><strong>${obj.name || 'Bez názvu'}</strong>`;
+                item.onclick = () => { map.setView([obj.lat, obj.lon], 16); L.popup().setLatLng([obj.lat, obj.lon]).setContent(obj.name).openOn(map); };
+                list.appendChild(item);
+            });
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === "Escape") {
-            analysisLayer.clearLayers();
-            document.getElementById('results-list').innerHTML = '';
-            document.getElementById('status').innerText = "Klikněte do mapy...";
-            document.getElementById('results-count').innerText = "";
-            map.closePopup();
-        }
+            document.getElementById('status').innerText = "";
+            document.getElementById('results-count').innerText = `Nalezeno: ${filteredPanel.length}`;
+        } catch (err) { document.getElementById('status').innerText = "Chyba komunikace."; }
     });
 
-    window.toggleSidebar = function() {
-        const sidebar = document.getElementById('sidebar');
-        const toggleBtn = document.getElementById('toggle-sidebar');
-        sidebar.classList.toggle('collapsed');
-        toggleBtn.innerText = sidebar.classList.contains('collapsed') ? "◀" : "▶";
-        setTimeout(() => map.invalidateSize(), 300);
+    // SIDEBAR TOGGLE
+    window.toggleSidebar = () => {
+        const sb = document.getElementById('sidebar');
+        sb.classList.toggle('collapsed');
+        document.getElementById('toggle-sidebar').innerText = sb.classList.contains('collapsed') ? "◀" : "▶";
+        setTimeout(() => map.invalidateSize(), 350);
     };
 
+    // SEARCH
     const searchInput = document.getElementById('map-search');
     const resultsContainer = document.getElementById('autocomplete-results');
-    let searchTimer;
+    let timer;
 
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value;
-        clearTimeout(searchTimer);
-        if (query.length < 3) { resultsContainer.style.display = 'none'; return; }
-        searchTimer = setTimeout(async () => {
-            try {
-                const addrUrl = `${API_BASE_URL}/api/search/address?query=${encodeURIComponent(query)}`;
-                const dbUrl = `${API_BASE_URL}/api/search/objects?query=${encodeURIComponent(query)}`;
-                const [addrRes, dbRes] = await Promise.all([fetch(addrUrl), fetch(dbUrl)]);
-                renderSearchResults(await addrRes.json(), await dbRes.json());
-            } catch (err) { console.error(err); }
+    searchInput.addEventListener('input', () => {
+        clearTimeout(timer);
+        const q = searchInput.value;
+        if (q.length < 3) { resultsContainer.style.display = 'none'; return; }
+        timer = setTimeout(async () => {
+            const [r1, r2] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/search/address?query=${encodeURIComponent(q)}`),
+                fetch(`${API_BASE_URL}/api/search/objects?query=${encodeURIComponent(q)}`)
+            ]);
+            const addrs = await r1.json();
+            const objs = await r2.json();
+            
+            resultsContainer.innerHTML = '';
+            addrs.forEach(a => {
+                const d = document.createElement('div'); d.className = 'search-item'; d.innerHTML = `📍 ${a.display_name}`;
+                d.onclick = () => { map.flyTo([a.lat, a.lon], 18); resultsContainer.style.display='none'; searchInput.value=''; };
+                resultsContainer.appendChild(d);
+            });
+            objs.forEach(o => {
+                const d = document.createElement('div'); d.className = 'search-item'; d.innerHTML = `🏢 ${o.name} (${o.category})`;
+                d.onclick = () => { map.flyTo([o.lat, o.lon], 17); resultsContainer.style.display='none'; searchInput.value=''; };
+                resultsContainer.appendChild(d);
+            });
+            resultsContainer.style.display = 'block';
         }, 400);
     });
 
-    function renderSearchResults(addresses, dbObjects) {
-        resultsContainer.innerHTML = '';
-        const addrList = Array.isArray(addresses) ? addresses : [];
-        const dbList = Array.isArray(dbObjects) ? dbObjects : [];
-        if (addrList.length === 0 && dbList.length === 0) { resultsContainer.style.display = 'none'; return; }
-
-        const clearSearch = () => { searchInput.value = ''; resultsContainer.style.display = 'none'; };
-
-        addrList.forEach(addr => {
-            const div = document.createElement('div');
-            div.className = 'search-item';
-            div.innerHTML = `📍 <i>Adresa:</i> ${addr.display_name}`;
-            div.onclick = () => { map.flyTo([addr.lat, addr.lon], 18); clearSearch(); };
-            resultsContainer.appendChild(div);
-        });
-
-        dbList.forEach(obj => {
-            const div = document.createElement('div');
-            div.className = 'search-item';
-            div.innerHTML = `${getIconByCategory(obj.category)} <b>${obj.name}</b> <small>(${obj.category})</small>`;
-            div.onclick = () => { map.flyTo([obj.lat, obj.lon], 17); L.popup().setLatLng([obj.lat, obj.lon]).setContent(`<b>${obj.name}</b>`).openOn(map); clearSearch(); };
-            resultsContainer.appendChild(div);
-        });
-        resultsContainer.style.display = 'block';
-    }
-
-    function getIconByCategory(category) {
-        const cat = (category || "").toLowerCase();
-        if (cat.includes('zastávka mhd')) return '🚏';
-        if (cat.includes('školské zařízení')) return '🎓';
-        if (cat.includes('parkování')) return '🅿️';
-        if (cat.includes('sportoviště')) return '⚽';
-        if (cat.includes('cyklostezka')) return '🚲';
-        return '🏢';
-    }
+    // ESC RESET
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") { analysisLayer.clearLayers(); document.getElementById('results-list').innerHTML = ''; document.getElementById('status').innerText = "Klikněte do mapy..."; }
+    });
 </script>
 </body>
 </html>
