@@ -425,8 +425,8 @@
         <input type="checkbox" class="cat-filter" value="ŠKOLSKÉ ZAŘÍZENÍ" checked> ŠKOLSKÁ ZAŘÍZENÍ 
         <small>(<span id="count-ŠKOLSKÉ ZAŘÍZENÍ">0</span>)</small><br>
         
-        <input type="checkbox" class="cat-filter" value="PARKOVÁNÍ" checked> PARKOVÁNÍ 
-        <small>(<span id="count-PARKOVÁNÍ">0</span>)</small><br>
+        <input type="checkbox" class="cat-filter" value="PLACENÉ PARKOVÁNÍ" checked> PLACENÁ PARKOVÁNÍ 
+        <small>(<span id="count-PLACENÉ PARKOVÁNÍ">0</span>)</small><br>
         
         <input type="checkbox" class="cat-filter" value="PARKOVACÍ ZÓNA" checked> PARKOVACÍ ZÓNY 
         <small>(<span id="count-PARKOVACÍ ZÓNA">0</span>)</small><br>
@@ -481,7 +481,7 @@
     const categoryColors = {
     'ZASTÁVKA MHD': '#e74c3c',            // Výrazná červená
     'ŠKOLSKÉ ZAŘÍZENÍ': '#f1c40f',          // Žlutá
-    'PARKOVÁNÍ': '#2c3e50',      // Tmavě modrá (půlnoční modř)
+    'PLACENÉ PARKOVÁNÍ': '#2c3e50',      // Tmavě modrá (půlnoční modř)
     'PARKOVACÍ ZÓNA': '#3498db', // Světle modrá
     'CYKLOSTEZKA': '#d81b60',     // Tmavě růžová (magentová)
     'SPORTOVIŠTĚ': '#27ae60',    // Zelená
@@ -716,7 +716,7 @@
         // Přesné mapování podle tvých kategorií
         if (cat.includes('zastávka mhd')) return '🚏';
         if (cat.includes('školské zařízení')) return '🎓';
-        if (cat.includes('parkování') || cat.includes('parkovací zóna')) return '🅿️';
+        if (cat.includes('placené parkování') || cat.includes('parkovací zóna')) return '🅿️';
         if (cat.includes('sportoviště')) return '⚽';
         if (cat.includes('cyklostezka')) return '🚲';
         

@@ -18,7 +18,7 @@ public class DataLoader {
 
                 try{
                     importservice.importGeoJson("src/main/resources/data/cycle/cycle.geojson", "CYKLOSTEZKA");
-                    importservice.importGeoJson("src/main/resources/data/parking/parking.geojson", "PARKOVÁNÍ");
+                    importservice.importGeoJson("src/main/resources/data/parking/parking.geojson", "PLACENÉ PARKOVÁNÍ");
                     importservice.importGeoJson("src/main/resources/data/parking_zones/parking_zones.geojson", "PARKOVACÍ ZÓNA");
                     importservice.importGeoJson("src/main/resources/data/public_transport_stops/public_transport_stops.geojson", "ZASTÁVKA MHD");
                     importservice.importGeoJson("src/main/resources/data/schools/schools.geojson", "ŠKOLSKÉ ZAŘÍZENÍ");
