@@ -226,6 +226,18 @@
             font-weight: bold;
         }
 
+        .address-marker {
+            background-color: #005aa7;
+            border: 2px solid white;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            width: 16px !important;
+            height: 16px !important;
+            margin-left: -8px !important;
+            margin-top: -16px !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
         #gps-control, #mobile-filter-toggle {
             display: none; 
         }
@@ -309,11 +321,31 @@
                 right: 5% !important; /* Pojistka zprava */
                 box-sizing: border-box !important; /* Zahrne padding do šířky */
                 transform: none !important;
-                margin: 0 !important;
+                margin: 0 auto !important;
+                position: absolute !important;
+                top: 20px !important;
+                z-index: 1100;
+
             }
 
             #map-search {
-                width: 100% !important; /* Input se roztáhne přesně podle kontejneru */
+                width: 100% !important;
+                box-sizing: border-box !important;
+                padding: 12px 45px 12px 15px !important;
+                font-size: 16px !important;
+                border-radius: 25px !important;
+            }
+
+            #clear-search-btn {
+                right: 12px !important;
+                top: 6px !important; /* Doladění výšky na mobilu */
+                font-size: 32px !important; /* Na mobilu se lépe trefuje do většího */
+                line-height: 1 !important;
+                position: absolute !important;
+            }
+
+            #autocomplete-results{
+                width: 100% !important;
                 box-sizing: border-box !important;
             }
 
@@ -354,6 +386,22 @@
            spellcheck="false"
            enterkeyhint="search"
            inputmode="search">
+
+    <span id="clear-search-btn" style="
+        position: absolute; 
+        right: 12px; 
+        top: 8px; 
+        cursor: pointer; 
+        color: #999; 
+        font-size: 28px;
+        font-family: Arial, sans-serif;
+        line-height: 1; 
+        display: none; 
+        z-index: 1200;
+        user-select: none;
+        padding: 0 5px;
+    ">&times;</span>
+    
     <div id="autocomplete-results"></div>
 </div>
 
@@ -676,6 +724,8 @@
         return '🏢'; 
     }
 
+    let searchMarker = null; // Proměnná pro ukládání značky hledané adresy
+
     function renderSearchResults(addresses, dbObjects) {
         const resultsContainer = document.getElementById('autocomplete-results');
         resultsContainer.innerHTML = '';
@@ -688,47 +738,82 @@
             return;
         }
 
+        // Pomocná funkce pro vyčištění pole po výběru
         function clearSearch() {
-            document.getElementById('map-search').value = '';
-            document.getElementById('autocomplete-results').style.display = 'none';
+            const input = document.getElementById('map-search');
+            const results = document.getElementById('autocomplete-results');
+            const clearBtn = document.getElementById('clear-search-btn');
+            
+            input.value = ''; // Vymaže text
+            resultsContainer.innerHTML = ''; // Vymaže výsledky
+            resultsContainer.style.display = 'none'; // Schová panel
+            
+            if (clearBtn) clearBtn.style.display = 'none'; // Schová křížek
+
+            if (window.innerWidth <= 768) {
+                input.blur(); // Schová klávesnici na mobilu
+            }
         }
 
-    // 1. Adresy (vždy špendlík)
-    addrList.forEach(addr => {
-        const div = document.createElement('div');
-        div.className = 'search-item';
-        div.innerHTML = `📍 <i>Adresa:</i> ${addr.display_name}`;
-        div.onclick = () => {
-            const lat = parseFloat(addr.lat);
-            const lon = parseFloat(addr.lon);
-            map.flyTo([lat, lon], 18, { duration: 1.5 });
-            clearSearch();
-        };
-        resultsContainer.appendChild(div);
-    });
+        // 1. ADRESY (Bez značky, jen s popupem)
+        addrList.forEach(addr => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            div.innerHTML = `📍 <i>Adresa:</i> ${addr.display_name}`;
+            div.onclick = () => {
+                const lat = parseFloat(addr.lat);
+                const lon = parseFloat(addr.lon);
+                
+                // Pokud v mapě zbyl marker z minulého hledání, smažeme ho
+                if (typeof searchMarker !== 'undefined' && searchMarker) {
+                    map.removeLayer(searchMarker);
+                }
 
-    // 2. Tvoje objekty z DB (dynamické ikony)
-    dbList.forEach(obj => {
-        const div = document.createElement('div');
-        div.className = 'search-item';
-        
-        // Zde voláme naši novou funkci pro získání ikony
-        const icon = getIconByCategory(obj.category);
-        
-        div.innerHTML = `${icon} <b>${obj.name}</b> <small style="color: #666;">(${obj.category})</small>`;
-        
-        div.onclick = () => {
-            map.flyTo([obj.lat, obj.lon], 17);
-            L.popup()
-                .setLatLng([obj.lat, obj.lon])
-                .setContent(`<b>${obj.name}</b><br><small>${obj.category}</small>`)
-                .openOn(map);
-            clearSearch();
-        };
-        resultsContainer.appendChild(div);
-    });
+                map.flyTo([lat, lon], 18, { duration: 1.5 });
 
-    resultsContainer.style.display = 'block';
+                // Otevře popup přímo na souřadnicích adresy
+                L.popup()
+                    .setLatLng([lat, lon])
+                    .setContent(`<b>Hledaná adresa:</b><br>${addr.display_name}`)
+                    .openOn(map);
+                
+                clearSearch();
+            };
+            resultsContainer.appendChild(div);
+        });
+
+        // 2. OBJEKTY Z DB (Popup + sidebar)
+        dbList.forEach(obj => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            const icon = getIconByCategory(obj.category);
+            div.innerHTML = `${icon} <b>${obj.name}</b> <small style="color: #666;">(${obj.category})</small>`;
+            
+            div.onclick = () => {
+                if (typeof searchMarker !== 'undefined' && searchMarker) {
+                    map.removeLayer(searchMarker);
+                }
+
+                map.flyTo([obj.lat, obj.lon], 17);
+                
+                L.popup()
+                    .setLatLng([obj.lat, obj.lon])
+                    .setContent(`<b>${obj.name}</b><br><small>${obj.category}</small>`)
+                    .openOn(map);
+
+                // Aktualizace sidebaru a vysunutí na mobilu
+                updateSidebar([obj]);
+                
+                if (window.innerWidth <= 768) {
+                    document.getElementById('sidebar').classList.add('expanded');
+                }
+
+                clearSearch();
+            };
+            resultsContainer.appendChild(div);
+        });
+
+        resultsContainer.style.display = 'block';
     }
 
     // Funkce pro nalezení uživatele přes GPS
@@ -831,6 +916,50 @@
     map.on('mousedown', () => {
         document.getElementById('left-panel').classList.remove('active');
     });
+
+    // --- DOPLNĚNÍ LOGIKY PRO KŘÍŽEK A DOTYKY ---
+    
+    const clearBtn = document.getElementById('clear-search-btn');
+
+    // Zobrazí křížek, jen když uživatel začne psát
+    searchInput.addEventListener('input', () => {
+        if (searchInput.value.length > 0) {
+            clearBtn.style.display = 'block';
+        } else {
+            clearBtn.style.display = 'none';
+        }
+    });
+
+    // Akce po kliknutí na křížek
+    clearBtn.onclick = function(e) {
+        e.stopPropagation(); 
+        searchInput.value = '';
+        resultsContainer.innerHTML = '';
+        resultsContainer.style.display = 'none';
+        clearBtn.style.display = 'none';
+        searchInput.focus(); 
+    };
+
+    // Chybějící funkce pro ovládání sidebaru na mobilu
+    function handleTouchLogic(e, isHeader) {
+        const diff = touchStart - touchEnd;
+        const isAtTop = sidebarContent.scrollTop <= 0;
+
+        // TAH NAHORU: Otevře panel
+        if (diff > 50) {
+            sidebar.classList.add('expanded');
+            readyToClose = false;
+        }
+
+        // TAH DOLŮ: Zavře panel (pokud je za hlavičku nebo jsme nahoře a podruhé swipneme)
+        if (diff < -50) {
+            if (isHeader || readyToClose) {
+                sidebar.classList.remove('expanded');
+                readyToClose = false;
+            }
+        }
+        setTimeout(() => map.invalidateSize(), 300);
+    }
 </script>
 
 </body>
