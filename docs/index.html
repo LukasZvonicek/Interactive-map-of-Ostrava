@@ -335,7 +335,7 @@
                 display: block !important;
                 z-index: 2500;
             }
-            
+
             .desktop-tip {
                 display: none !important;
             }
@@ -755,29 +755,66 @@
     // --- OVLÁDÁNÍ SIDEBARU TAHEM (MOBILE ONLY) ---
     let touchStart = 0;
     let touchEnd = 0;
+    let readyToClose = false; // Pojistka: jsme na začátku a čekáme na další swipe?
+
     const sidebar = document.getElementById('sidebar');
+    const sidebarHeader = sidebar.querySelector('.header');
+    const sidebarContent = sidebar.querySelector('.content');
 
     sidebar.addEventListener('touchstart', e => {
         touchStart = e.targetTouches[0].clientY;
+        // Pokud jsme na začátku seznamu, připravíme si pojistku
+        readyToClose = (sidebarContent.scrollTop <= 0);
     }, {passive: true});
 
     sidebar.addEventListener('touchmove', e => {
         touchEnd = e.targetTouches[0].clientY;
+        
+        // Pokud během pohybu odskrolujeme pryč od začátku, pojistku zrušíme
+        if (sidebarContent.scrollTop > 0) {
+            readyToClose = false;
+        }
     }, {passive: true});
 
-    sidebar.addEventListener('touchend', () => {
-        // Pokud táhneme nahoru (start je větší než end)
-        if (touchStart - touchEnd > 50) {
+    sidebar.addEventListener('touchend', e => {
+        const diff = touchStart - touchEnd;
+        const isHeader = sidebarHeader.contains(e.target);
+
+        // 1. TAH NAHORU: Vždy otevře
+        if (diff > 50) {
             sidebar.classList.add('expanded');
+            readyToClose = false;
         }
-        // Pokud táhneme dolů (start je menší než end)
-        if (touchEnd - touchStart > 50) {
-            sidebar.classList.remove('expanded');
+
+        // 2. TAH DOLŮ:
+        if (diff < -50) {
+            // A) Pokud táhneme za MODROU LIŠTU, zavřeme hned (expresní cesta)
+            if (isHeader) {
+                sidebar.classList.remove('expanded');
+                readyToClose = false;
+            } 
+            // B) Pokud táhneme za OBSAH a už jsme byli na začátku (readyToClose)
+            else if (readyToClose) {
+                sidebar.classList.remove('expanded');
+                readyToClose = false;
+            } 
+            // C) Pokud jsme právě dojeli na začátek, ale swipe začal níže
+            else if (sidebarContent.scrollTop <= 0) {
+                // Tady se nic nestane (panel zůstane), ale příští touchstart už aktivuje readyToClose
+            }
         }
         
-        // Aktualizace mapy po změně velikosti
         setTimeout(() => map.invalidateSize(), 300);
     });
+
+        // Eventy pro CELÝ SIDEBAR (kvůli otevírání a skrolování)
+        sidebar.addEventListener('touchstart', e => { touchStart = e.targetTouches[0].clientY; }, {passive: true});
+        sidebar.addEventListener('touchmove', e => { touchEnd = e.targetTouches[0].clientY; }, {passive: true});
+        sidebar.addEventListener('touchend', e => {
+            // Zjistíme, jestli dotyk skončil na hlavičce nebo jejím potomku (bílé čáře)
+            const isHeader = sidebarHeader.contains(e.target);
+            handleTouchLogic(e, isHeader);
+        });
 
     // --- PŘEPÍNÁNÍ FILTRŮ (ZAPNOUT/VYPNOUT) ---
     window.toggleFilters = function() {
