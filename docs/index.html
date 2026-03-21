@@ -303,11 +303,41 @@
                 margin-top: 70px !important;
             }
 
+            #search-container {
+                width: 90% !important;
+                left: 5% !important;
+                right: 5% !important; /* Pojistka zprava */
+                box-sizing: border-box !important; /* Zahrne padding do šířky */
+                transform: none !important;
+                margin: 0 !important;
+            }
+
+            #map-search {
+                width: 100% !important; /* Input se roztáhne přesně podle kontejneru */
+                box-sizing: border-box !important;
+            }
+
             /* Posune licenci mapy a Clarity info nad spodní hranu sidebaru */
             .leaflet-control-attribution {
-                margin-bottom: 50px !important; /* Posune to nad tu lištu sidebaru */
-                background: rgba(255, 255, 255, 0.5) !important; /* Trochu zprůhledníme pozadí */
-                font-size: 8px !important; /* Na mobilu to stačí úplně pidi */
+                margin: 0 !important;
+                padding: 4px 8px !important;
+                background: rgba(255, 255, 255, 0.8) !important; /* Poloprůhledné pozadí */
+                font-size: 8px !important; /* Opravdu malé písmo, aby se to tam vešlo */
+                line-height: 1.2 !important;
+                width: 100% !important; /* Roztáhne se na celou šířku */
+                box-sizing: border-box !important;
+                text-align: center !important;
+                position: fixed !important; /* Ukotvíme ji */
+                bottom: 50px !important; /* Posun nad hranu schovaného sidebaru */
+                left: 0 !important;
+                right: 0 !important;
+                white-space: normal !important; /* DOVOLÍME ZALOMENÍ TEXTU na více řádků */
+                display: block !important;
+                z-index: 2500;
+            }
+            
+            .desktop-tip {
+                display: none !important;
             }
         }
 
@@ -361,7 +391,7 @@
     </div>
 </div>
 
-    <div style="font-size: 0.8em; color: #777;">
+    <div class="desktop-tip" style="font-size: 0.8em; color: #777;">
         Tip: Kliknutím do mapy zobrazíte objekty. Klávesou <strong>ESC</strong> zrušíte výběr.
     </div>
 </div>
