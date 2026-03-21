@@ -2,6 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Prostředí Ostrav - Bakalářská práce</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script type="text/javascript">
@@ -224,12 +225,105 @@
         .checkbox-list span:not(:empty) {
             font-weight: bold;
         }
+
+        #gps-control, #mobile-filter-toggle {
+            display: none; 
+        }
+
+        /* --- MOBILNÍ OPTIMALIZACE --- */
+        @media (max-width: 768px) {
+            /* Schováme šipku, nepotřebujeme ji */
+            #toggle-sidebar { display: none !important; }
+
+            /* Bílá čára (handle) v modré hlavičce */
+            #mobile-handle {
+                width: 40px;
+                height: 5px;
+                background: rgba(255, 255, 255, 0.8);
+                border-radius: 10px;
+                margin: -5px auto 10px auto; /* Umístí ji nad nadpis */
+            }
+
+            #sidebar {
+                width: 100% !important;
+                height: 70vh !important; /* Maximální výška při vytažení */
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                z-index: 3000;
+                transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+                transform: translateY(calc(70vh - 50px)); /* Schovaný stav: kouká jen hlavička */
+            }
+
+            /* Třída pro vytažený stav prstem */
+            #sidebar.expanded {
+                transform: translateY(0);
+            }
+
+            #gps-control, #mobile-filter-toggle {
+                display: flex;
+                position: fixed; /* Fixed je na mobilu jistota */
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                background: white;
+                border: 2px solid #005aa7;
+                border-radius: 50%;
+                display: flex;
+                flex-direction: column; /* Pro ty 3 čárky */
+                align-items: center;
+                justify-content: center;
+                z-index: 5000; /* Vyšší než left-panel (4000) */
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                cursor: pointer;
+            }
+
+            #gps-control { top: 80px; }
+            #mobile-filter-toggle { top: 145px; }
+
+            #left-panel {
+                display: none; /* Defaultně schovaný */
+                position: fixed;
+                width: calc(100% - 60px) !important;
+                top: 80px !important;
+                left: 15px !important;
+                z-index: 4500;
+                background: white;
+                padding: 15px;
+                border-radius: 12px;
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 3);
+            }
+
+            /* Třída pro aktivní filtry (zobrazení/skrytí) */
+            #left-panel.active {
+                display: block !important;
+            }
+
+            .leaflet-top.leaflet-left {
+                margin-top: 70px !important;
+            }
+
+            /* Posune licenci mapy a Clarity info nad spodní hranu sidebaru */
+            .leaflet-control-attribution {
+                margin-bottom: 50px !important; /* Posune to nad tu lištu sidebaru */
+                background: rgba(255, 255, 255, 0.5) !important; /* Trochu zprůhledníme pozadí */
+                font-size: 8px !important; /* Na mobilu to stačí úplně pidi */
+            }
+        }
+
     </style>
 </head>
 <body>
 
 <div id="search-container">
-    <input type="text" id="map-search" placeholder="Hledejte adresu nebo objekt..." autocomplete="off">
+    <input type="text" 
+           id="map-search" 
+           placeholder="Hledejte adresu nebo objekt..." 
+           autocomplete="off"
+           autocorrect="off"
+           spellcheck="false"
+           enterkeyhint="search"
+           inputmode="search">
     <div id="autocomplete-results"></div>
 </div>
 
@@ -278,6 +372,7 @@
     <div id="toggle-sidebar" onclick="toggleSidebar()">▶</div>
 
     <div class="header">
+        <div id="mobile-handle"></div>
         <h2 style="margin:0; font-size: 1.2em;">Nalezené objekty</h2>
     </div>
     <div class="content">
@@ -285,6 +380,19 @@
         <div id="results-count" style="margin-bottom: 15px; font-weight: bold; color: #005aa7;"></div>
         <div id="results-list"></div>
     </div>
+</div>
+
+<div id="gps-control" onclick="locateUser()" title="Moje poloha">
+    <svg width="26" height="32" viewBox="0 0 26 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 32C13 32 26 21 26 13C26 5.8 20.2 0 13 0C5.8 0 0 5.8 0 13C0 21 13 32 13 32Z" fill="#005aa7"/>
+        <circle cx="13" cy="13" r="6" fill="white"/>
+        </svg>
+</div>
+
+<div id="mobile-filter-toggle" onclick="toggleFilters()" title="Filtry">
+    <div style="width: 18px; height: 2px; background: #005aa7; margin: 3px 0;"></div>
+    <div style="width: 18px; height: 2px; background: #005aa7; margin: 3px 0;"></div>
+    <div style="width: 18px; height: 2px; background: #005aa7; margin: 3px 0;"></div>
 </div>
 
 <script type="module">
@@ -464,7 +572,7 @@
         }
     });
 
-    function toggleSidebar() {
+    window.toggleSidebar = function() {
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggle-sidebar');
         
@@ -489,16 +597,16 @@
 
     let searchTimer; // Globální proměnná pro časovač
 
-searchInput.addEventListener('input', (e) => {
-    const query = e.target.value;
-    
-    // Zrušíme předchozí plánovaný dotaz
-    clearTimeout(searchTimer);
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value;
+        
+        // Zrušíme předchozí plánovaný dotaz
+        clearTimeout(searchTimer);
 
-        if (query.length < 3) {
-            resultsContainer.style.display = 'none';
-            return;
-        }
+            if (query.length < 3) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
 
         // Naplánujeme dotaz až za 400ms po posledním stisku klávesy
         searchTimer = setTimeout(async () => {
@@ -538,22 +646,22 @@ searchInput.addEventListener('input', (e) => {
         return '🏢'; 
     }
 
-function renderSearchResults(addresses, dbObjects) {
-    const resultsContainer = document.getElementById('autocomplete-results');
-    resultsContainer.innerHTML = '';
-    
-    const addrList = Array.isArray(addresses) ? addresses : [];
-    const dbList = Array.isArray(dbObjects) ? dbObjects : [];
+    function renderSearchResults(addresses, dbObjects) {
+        const resultsContainer = document.getElementById('autocomplete-results');
+        resultsContainer.innerHTML = '';
+        
+        const addrList = Array.isArray(addresses) ? addresses : [];
+        const dbList = Array.isArray(dbObjects) ? dbObjects : [];
 
-    if (addrList.length === 0 && dbList.length === 0) {
-        resultsContainer.style.display = 'none';
-        return;
-    }
+        if (addrList.length === 0 && dbList.length === 0) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
 
-    function clearSearch() {
-        document.getElementById('map-search').value = '';
-        document.getElementById('autocomplete-results').style.display = 'none';
-    }
+        function clearSearch() {
+            document.getElementById('map-search').value = '';
+            document.getElementById('autocomplete-results').style.display = 'none';
+        }
 
     // 1. Adresy (vždy špendlík)
     addrList.forEach(addr => {
@@ -591,7 +699,71 @@ function renderSearchResults(addresses, dbObjects) {
     });
 
     resultsContainer.style.display = 'block';
-}
+    }
+
+    // Funkce pro nalezení uživatele přes GPS
+    window.locateUser = function() {
+        map.locate({setView: true, maxZoom: 16});
+    };
+
+    // Událost, když mapa najde polohu
+    map.on('locationfound', (e) => {
+        // Přidáme modrý puntík pro polohu uživatele
+        L.circleMarker(e.latlng, {
+            radius: 8,
+            fillColor: "#005aa7",
+            color: "#fff",
+            weight: 2,
+            fillOpacity: 1
+        }).addTo(map).bindPopup("Jste zde").openPopup();
+    });
+
+    map.on('locationerror', (e) => {
+        alert("Nepodařilo se získat polohu: " + e.message);
+    });
+
+    // --- OVLÁDÁNÍ SIDEBARU TAHEM (MOBILE ONLY) ---
+    let touchStart = 0;
+    let touchEnd = 0;
+    const sidebar = document.getElementById('sidebar');
+
+    sidebar.addEventListener('touchstart', e => {
+        touchStart = e.targetTouches[0].clientY;
+    }, {passive: true});
+
+    sidebar.addEventListener('touchmove', e => {
+        touchEnd = e.targetTouches[0].clientY;
+    }, {passive: true});
+
+    sidebar.addEventListener('touchend', () => {
+        // Pokud táhneme nahoru (start je větší než end)
+        if (touchStart - touchEnd > 50) {
+            sidebar.classList.add('expanded');
+        }
+        // Pokud táhneme dolů (start je menší než end)
+        if (touchEnd - touchStart > 50) {
+            sidebar.classList.remove('expanded');
+        }
+        
+        // Aktualizace mapy po změně velikosti
+        setTimeout(() => map.invalidateSize(), 300);
+    });
+
+    // --- PŘEPÍNÁNÍ FILTRŮ (ZAPNOUT/VYPNOUT) ---
+    window.toggleFilters = function() {
+        const panel = document.getElementById('left-panel');
+        panel.classList.toggle('active'); // Při prvním kliku zapne, při druhém vypne
+    };
+
+    // Schovat filtry, když se začne hýbat se spodním panelem
+    sidebar.addEventListener('touchstart', () => {
+        document.getElementById('left-panel').classList.remove('active');
+    }, {passive: true});
+
+    // Schovat filtry, když se klikne do mapy
+    map.on('mousedown', () => {
+        document.getElementById('left-panel').classList.remove('active');
+    });
 </script>
 
 </body>
