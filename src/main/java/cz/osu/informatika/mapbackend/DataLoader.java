@@ -1,7 +1,5 @@
 package cz.osu.informatika.mapbackend;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

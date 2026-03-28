@@ -161,9 +161,9 @@
             width: 20px;
             border-radius: 50%;
             background: #ffffff;
-            border: 3px solid #005aa7; /* Modrý okraj kolečka */
+            border: 3px solid #005aa7;
             cursor: pointer;
-            margin-top: -7px; /* Vycentrování vůči čáře */
+            margin-top: -7px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             transition: transform 0.1s ease;
         }
@@ -216,12 +216,11 @@
 
         hr { border: 0; border-top: 1px solid #ddd; margin: 15px 0; }
         .checkbox-list small {
-            color: #666;      /* Šedá barva, aby to nebilo do očí */
-            font-size: 0.85em; /* O něco menší než hlavní text */
+            color: #666;
+            font-size: 0.85em;
             margin-left: 5px;
         }
 
-        /* Pokud chceš, aby čísla, která nejsou nula, byla výraznější */
         .checkbox-list span:not(:empty) {
             font-weight: bold;
         }
@@ -247,7 +246,6 @@
             /* Schováme šipku, nepotřebujeme ji */
             #toggle-sidebar { display: none !important; }
 
-            /* Bílá čára (handle) v modré hlavičce */
             #mobile-handle {
                 width: 40px;
                 height: 5px;
@@ -282,10 +280,10 @@
                 border: 2px solid #005aa7;
                 border-radius: 50%;
                 display: flex;
-                flex-direction: column; /* Pro ty 3 čárky */
+                flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                z-index: 5000; /* Vyšší než left-panel (4000) */
+                z-index: 5000;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                 cursor: pointer;
             }
@@ -294,7 +292,7 @@
             #mobile-filter-toggle { top: 145px; }
 
             #left-panel {
-                display: none; /* Defaultně schovaný */
+                display: none;
                 position: fixed;
                 width: calc(100% - 60px) !important;
                 top: 80px !important;
@@ -318,8 +316,8 @@
             #search-container {
                 width: 90% !important;
                 left: 5% !important;
-                right: 5% !important; /* Pojistka zprava */
-                box-sizing: border-box !important; /* Zahrne padding do šířky */
+                right: 5% !important; 
+                box-sizing: border-box !important;
                 transform: none !important;
                 margin: 0 auto !important;
                 position: absolute !important;
@@ -338,8 +336,8 @@
 
             #clear-search-btn {
                 right: 12px !important;
-                top: 6px !important; /* Doladění výšky na mobilu */
-                font-size: 32px !important; /* Na mobilu se lépe trefuje do většího */
+                top: 6px !important;
+                font-size: 32px !important;
                 line-height: 1 !important;
                 position: absolute !important;
             }
@@ -353,17 +351,17 @@
             .leaflet-control-attribution {
                 margin: 0 !important;
                 padding: 4px 8px !important;
-                background: rgba(255, 255, 255, 0.8) !important; /* Poloprůhledné pozadí */
-                font-size: 8px !important; /* Opravdu malé písmo, aby se to tam vešlo */
+                background: rgba(255, 255, 255, 0.8) !important;
+                font-size: 8px !important;
                 line-height: 1.2 !important;
-                width: 100% !important; /* Roztáhne se na celou šířku */
+                width: 100% !important;
                 box-sizing: border-box !important;
                 text-align: center !important;
-                position: fixed !important; /* Ukotvíme ji */
-                bottom: 50px !important; /* Posun nad hranu schovaného sidebaru */
+                position: fixed !important;
+                bottom: 50px !important;
                 left: 0 !important;
                 right: 0 !important;
-                white-space: normal !important; /* DOVOLÍME ZALOMENÍ TEXTU na více řádků */
+                white-space: normal !important;
                 display: block !important;
                 z-index: 2500;
             }
@@ -479,16 +477,16 @@
     : 'https://interactive-map-of-ostrava.onrender.com';
 
     const categoryColors = {
-    'ZASTÁVKA MHD': '#e74c3c',            // Výrazná červená
+    'ZASTÁVKA MHD': '#e74c3c',            // červená
     'ŠKOLSKÉ ZAŘÍZENÍ': '#f1c40f',          // Žlutá
-    'PLACENÉ PARKOVÁNÍ': '#2c3e50',      // Tmavě modrá (půlnoční modř)
+    'PLACENÉ PARKOVÁNÍ': '#2c3e50',      // Tmavě modrá
     'PARKOVACÍ ZÓNA': '#3498db', // Světle modrá
-    'CYKLOSTEZKA': '#d81b60',     // Tmavě růžová (magentová)
+    'CYKLOSTEZKA': '#d81b60',     // Tmavě růžová
     'SPORTOVIŠTĚ': '#27ae60',    // Zelená
     'default': '#7f8c8d'         // Šedá pro zbytek
     };
 
-    // 1. OMEZENÍ MAPY NA OSTRAVU
+    // OMEZENÍ MAPY NA OSTRAVU
     const ostravaBounds = L.latLngBounds(
         L.latLng(49.70, 18.10), 
         L.latLng(49.95, 18.45)
@@ -510,7 +508,7 @@
     const wktParser = new Wkt.Wkt();
     const ostravaBlue = '#005aa7';
 
-    // 2. OVLÁDÁNÍ RADIUSU
+    // OVLÁDÁNÍ RADIUSU
     let currentRadius = 500;
     const slider = document.getElementById('radius-slider');
     const radiusLabel = document.getElementById('radius-val');
@@ -520,7 +518,7 @@
         radiusLabel.innerText = currentRadius;
     };
 
-    // 3. ANALÝZA PO KLIKNUTÍ
+    // ANALÝZA PO KLIKNUTÍ
     map.on('click', async function(e) {
         const { lat, lng } = e.latlng;
         
@@ -546,20 +544,16 @@
             const response = await fetch(url);
             const data = await response.json();
 
-            // 1. Nejdříve vynulujeme všechna počítadla v legendě
             document.querySelectorAll('span[id^="count-"]').forEach(span => { span.innerText = "0"});
 
             const counts = {};
 
-            // 2. Spočítáme výskyty pro každou kategorii v obdržených datech
             if (data.panelData) {
                 data.panelData.forEach(obj => {
-                    // Počítáme kategorii pro každý unikátní objekt v sidebaru
                     counts[obj.category] = (counts[obj.category] || 0) + 1;
                 });
             }
 
-            // 3. Zapíšeme nová čísla do HTML prvků
             for (const cat in counts) {
                 const element = document.getElementById(`count-${cat}`);
                 if (element) {
@@ -654,17 +648,14 @@
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggle-sidebar');
         
-        // Přepne třídu .collapsed
         sidebar.classList.toggle('collapsed');
         
-        // Otočí šipku
         if (sidebar.classList.contains('collapsed')) {
             toggleBtn.innerText = "◀";
         } else {
             toggleBtn.innerText = "▶";
         }
         
-        // Zásadní pro Leaflet: Počkat na konec animace (300ms) a přepočítat mapu
         setTimeout(() => {
             map.invalidateSize();
         }, 300);
@@ -673,12 +664,11 @@
     const searchInput = document.getElementById('map-search');
     const resultsContainer = document.getElementById('autocomplete-results');
 
-    let searchTimer; // Globální proměnná pro časovač
+    let searchTimer;
 
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value;
         
-        // Zrušíme předchozí plánovaný dotaz
         clearTimeout(searchTimer);
 
             if (query.length < 3) {
@@ -686,7 +676,6 @@
                 return;
             }
 
-        // Naplánujeme dotaz až za 400ms po posledním stisku klávesy
         searchTimer = setTimeout(async () => {
             try {
                 console.log("Teď posílám dotaz na server:", query);
@@ -713,18 +702,16 @@
         
         const cat = category.toLowerCase();
         
-        // Přesné mapování podle tvých kategorií
         if (cat.includes('zastávka mhd')) return '🚏';
         if (cat.includes('školské zařízení')) return '🎓';
         if (cat.includes('placené parkování') || cat.includes('parkovací zóna')) return '🅿️';
         if (cat.includes('sportoviště')) return '⚽';
         if (cat.includes('cyklostezka')) return '🚲';
         
-        // Výchozí ikona pro ostatní (kdyby se objevilo něco jiného)
         return '🏢'; 
     }
 
-    let searchMarker = null; // Proměnná pro ukládání značky hledané adresy
+    let searchMarker = null;
 
     function renderSearchResults(addresses, dbObjects) {
         const resultsContainer = document.getElementById('autocomplete-results');
@@ -744,18 +731,18 @@
             const results = document.getElementById('autocomplete-results');
             const clearBtn = document.getElementById('clear-search-btn');
             
-            input.value = ''; // Vymaže text
-            resultsContainer.innerHTML = ''; // Vymaže výsledky
-            resultsContainer.style.display = 'none'; // Schová panel
+            input.value = '';
+            resultsContainer.innerHTML = '';
+            resultsContainer.style.display = 'none';
             
-            if (clearBtn) clearBtn.style.display = 'none'; // Schová křížek
+            if (clearBtn) clearBtn.style.display = 'none';
 
             if (window.innerWidth <= 768) {
-                input.blur(); // Schová klávesnici na mobilu
+                input.blur();
             }
         }
 
-        // 1. ADRESY (Bez značky, jen s popupem)
+        // 1. ADRESY
         addrList.forEach(addr => {
             const div = document.createElement('div');
             div.className = 'search-item';
@@ -764,14 +751,12 @@
                 const lat = parseFloat(addr.lat);
                 const lon = parseFloat(addr.lon);
                 
-                // Pokud v mapě zbyl marker z minulého hledání, smažeme ho
                 if (typeof searchMarker !== 'undefined' && searchMarker) {
                     map.removeLayer(searchMarker);
                 }
 
                 map.flyTo([lat, lon], 18, { duration: 1.5 });
 
-                // Otevře popup přímo na souřadnicích adresy
                 L.popup()
                     .setLatLng([lat, lon])
                     .setContent(`<b>Hledaná adresa:</b><br>${addr.display_name}`)
@@ -821,9 +806,7 @@
         map.locate({setView: true, maxZoom: 16});
     };
 
-    // Událost, když mapa najde polohu
     map.on('locationfound', (e) => {
-        // Přidáme modrý puntík pro polohu uživatele
         L.circleMarker(e.latlng, {
             radius: 8,
             fillColor: "#005aa7",
@@ -840,7 +823,7 @@
     // --- OVLÁDÁNÍ SIDEBARU TAHEM (MOBILE ONLY) ---
     let touchStart = 0;
     let touchEnd = 0;
-    let readyToClose = false; // Pojistka: jsme na začátku a čekáme na další swipe?
+    let readyToClose = false;
 
     const sidebar = document.getElementById('sidebar');
     const sidebarHeader = sidebar.querySelector('.header');
@@ -848,14 +831,12 @@
 
     sidebar.addEventListener('touchstart', e => {
         touchStart = e.targetTouches[0].clientY;
-        // Pokud jsme na začátku seznamu, připravíme si pojistku
         readyToClose = (sidebarContent.scrollTop <= 0);
     }, {passive: true});
 
     sidebar.addEventListener('touchmove', e => {
         touchEnd = e.targetTouches[0].clientY;
         
-        // Pokud během pohybu odskrolujeme pryč od začátku, pojistku zrušíme
         if (sidebarContent.scrollTop > 0) {
             readyToClose = false;
         }
@@ -865,7 +846,7 @@
         const diff = touchStart - touchEnd;
         const isHeader = sidebarHeader.contains(e.target);
 
-        // 1. TAH NAHORU: Vždy otevře
+        // 1. TAH NAHORU
         if (diff > 50) {
             sidebar.classList.add('expanded');
             readyToClose = false;
@@ -873,19 +854,15 @@
 
         // 2. TAH DOLŮ:
         if (diff < -50) {
-            // A) Pokud táhneme za MODROU LIŠTU, zavřeme hned (expresní cesta)
             if (isHeader) {
                 sidebar.classList.remove('expanded');
                 readyToClose = false;
             } 
-            // B) Pokud táhneme za OBSAH a už jsme byli na začátku (readyToClose)
             else if (readyToClose) {
                 sidebar.classList.remove('expanded');
                 readyToClose = false;
             } 
-            // C) Pokud jsme právě dojeli na začátek, ale swipe začal níže
             else if (sidebarContent.scrollTop <= 0) {
-                // Tady se nic nestane (panel zůstane), ale příští touchstart už aktivuje readyToClose
             }
         }
         
@@ -896,7 +873,6 @@
         sidebar.addEventListener('touchstart', e => { touchStart = e.targetTouches[0].clientY; }, {passive: true});
         sidebar.addEventListener('touchmove', e => { touchEnd = e.targetTouches[0].clientY; }, {passive: true});
         sidebar.addEventListener('touchend', e => {
-            // Zjistíme, jestli dotyk skončil na hlavičce nebo jejím potomku (bílé čáře)
             const isHeader = sidebarHeader.contains(e.target);
             handleTouchLogic(e, isHeader);
         });
@@ -904,7 +880,7 @@
     // --- PŘEPÍNÁNÍ FILTRŮ (ZAPNOUT/VYPNOUT) ---
     window.toggleFilters = function() {
         const panel = document.getElementById('left-panel');
-        panel.classList.toggle('active'); // Při prvním kliku zapne, při druhém vypne
+        panel.classList.toggle('active');
     };
 
     // Schovat filtry, když se začne hýbat se spodním panelem
@@ -951,7 +927,7 @@
             readyToClose = false;
         }
 
-        // TAH DOLŮ: Zavře panel (pokud je za hlavičku nebo jsme nahoře a podruhé swipneme)
+        // TAH DOLŮ: Zavře panel
         if (diff < -50) {
             if (isHeader || readyToClose) {
                 sidebar.classList.remove('expanded');

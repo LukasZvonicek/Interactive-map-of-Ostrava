@@ -91,7 +91,6 @@ public class LocationController {
             conn.setRequestMethod("GET");
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Bakalarka-Ostrava-App)");
 
-            // --- TADY ZAČÍNÁ CHYBĚJÍCÍ ČÁST ---
             StringBuilder response = new StringBuilder();
             try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
                 String inputLine;
@@ -100,12 +99,11 @@ public class LocationController {
                 }
             }
 
-            return response.toString(); // Vracíme stažený JSON jako String
-            // --- TADY KONČÍ CHYBĚJÍCÍ ČÁST ---
+            return response.toString();
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "[]"; // V případě chyby vrátíme prázdné pole v JSONu
+            return "[]";
         }
     }
 }

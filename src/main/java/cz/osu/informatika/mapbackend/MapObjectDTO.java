@@ -13,7 +13,7 @@ public class MapObjectDTO {
             this.lon = lon;
         }
 
-        // Gettery (Důležité, aby Jackson mohl vytvořit JSON)
+        // Gettery
         public String getName() { return name; }
         public String getCategory() { return category; }
         public double getLat() { return lat; }

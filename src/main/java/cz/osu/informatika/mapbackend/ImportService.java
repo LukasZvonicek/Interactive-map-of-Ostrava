@@ -43,7 +43,7 @@ public class ImportService {
 
         for (JsonNode feature : features) {
             try {
-                // 1. CHYTRÉ MAPOVÁNÍ NÁZVU
+                //MAPOVÁNÍ NÁZVU
                 JsonNode props = feature.get("properties");
                 String name = "Neznámý objekt";
                 String[] nameFields = {"NAME", "zast_jm", "OBLAST", "NAZEV", "TRASA"};
@@ -64,11 +64,11 @@ public class ImportService {
                     }
                 }
 
-                // 2. ČTENÍ GEOMETRIE
+                //ČTENÍ GEOMETRIE
                 String geometryJson = feature.get("geometry").toString();
                 Geometry geom = reader.read(geometryJson);
 
-                // 3. ODSTRANĚNÍ Z-SOUŘADNICE (zachováno)
+                //ODSTRANĚNÍ Z-SOUŘADNICE
                 geom.apply(new org.locationtech.jts.geom.CoordinateSequenceFilter() {
                     @Override
                     public void filter(org.locationtech.jts.geom.CoordinateSequence seq, int i) {
@@ -77,9 +77,6 @@ public class ImportService {
                     @Override public boolean isDone() { return false; }
                     @Override public boolean isGeometryChanged() { return true; }
                 });
-
-                // --- KLÍČOVÁ ZMĚNA: NATIVNÍ SQL INSERT S TRANSFORMACÍ ---
-                // Místo entityManager.persist(obj) použijeme SQL, aby PostGIS mohl souřadnice přepočítat
 
                 String sql;
                 if (geom.getCoordinate().x > 5000) {
@@ -96,7 +93,7 @@ public class ImportService {
                         .setParameter("wkt", geom.toText())
                         .executeUpdate();
 
-                // 5. BATCHING
+                //BATCHING
                 if (++count % 500 == 0) {
                     entityManager.flush();
                     entityManager.clear();
