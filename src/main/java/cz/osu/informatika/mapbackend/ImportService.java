@@ -63,6 +63,18 @@ public class ImportService {
                         }
                     }
                 }
+                if (name != null && !name.isEmpty() && !name.equals("Neznámý objekt")) {
+                    String[] words = name.toLowerCase().split("\\s+");
+                    StringBuilder capitalizedName = new StringBuilder();
+                    for (String word : words) {
+                        if (word.length() > 0) {
+                            capitalizedName.append(Character.toUpperCase(word.charAt(0)))
+                                    .append(word.substring(1))
+                                    .append(" ");
+                        }
+                    }
+                    name = capitalizedName.toString().trim();
+                }
 
                 //ČTENÍ GEOMETRIE
                 String geometryJson = feature.get("geometry").toString();

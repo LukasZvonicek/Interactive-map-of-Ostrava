@@ -237,13 +237,39 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
 
-        #gps-control, #mobile-filter-toggle {
-            display: none; 
+        #mobile-filter-toggle {
+            display: none !important; 
         }
+
+        :root {
+            --sidebar-width: 350px;
+        }
+
+        #gps-control{
+                display: flex;
+                position: fixed;
+                right: calc(var(--sidebar-width, 350px) + 20px);
+                top: 20px;
+                bottom: auto;
+                width: 50px;
+                height: 50px;
+                background: white;
+                border: 2px solid #005aa7;
+                border-radius: 50%;
+                align-items: center;
+                justify-content: center;
+                z-index: 2500;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                cursor: pointer;
+                transition: right 0.3s ease;
+            }
+
+            #gps-control:hover {
+                background: #f4f4f4;
+            }
 
         /* --- MOBILNÍ OPTIMALIZACE --- */
         @media (max-width: 768px) {
-            /* Schováme šipku, nepotřebujeme ji */
             #toggle-sidebar { display: none !important; }
 
             #mobile-handle {
@@ -251,7 +277,7 @@
                 height: 5px;
                 background: rgba(255, 255, 255, 0.8);
                 border-radius: 10px;
-                margin: -5px auto 10px auto; /* Umístí ji nad nadpis */
+                margin: -5px auto 10px auto;
             }
 
             #sidebar {
@@ -271,25 +297,22 @@
             }
 
             #gps-control, #mobile-filter-toggle {
-                display: flex;
-                position: fixed; /* Fixed je na mobilu jistota */
-                right: 20px;
-                width: 50px;
-                height: 50px;
-                background: white;
-                border: 2px solid #005aa7;
-                border-radius: 50%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                z-index: 5000;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                cursor: pointer;
+                display: flex !important;
+                position: fixed !important;
+                right: 20px !important;
+                left: auto !important;
+                width: 50px !important;
+                height: 50px !important;
+                background: white !important;
+                border: 2px solid #005aa7 !important;
+                border-radius: 50% !important;
+                z-index: 5000 !important;
+                bottom: auto !important;
+                transition: none !important;
             }
 
-            #gps-control { top: 80px; }
-            #mobile-filter-toggle { top: 145px; }
+            #gps-control { top: 80px !important; }
+            #mobile-filter-toggle { top: 145px !important; }
 
             #left-panel {
                 display: none;
@@ -465,10 +488,11 @@
         </svg>
 </div>
 
-<div id="mobile-filter-toggle" onclick="toggleFilters()" title="Filtry">
-    <div style="width: 18px; height: 2px; background: #005aa7; margin: 3px 0;"></div>
-    <div style="width: 18px; height: 2px; background: #005aa7; margin: 3px 0;"></div>
-    <div style="width: 18px; height: 2px; background: #005aa7; margin: 3px 0;"></div>
+<div id="mobile-filter-toggle" onclick="toggleFilters()" title="Filtry" 
+     style="flex-direction: column; justify-content: center; align-items: center; gap: 5px;">
+    <div style="width: 22px; height: 3px; background: #005aa7; border-radius: 10px; flex-shrink: 0;"></div>
+    <div style="width: 22px; height: 3px; background: #005aa7; border-radius: 10px; flex-shrink: 0;"></div>
+    <div style="width: 22px; height: 3px; background: #005aa7; border-radius: 10px; flex-shrink: 0;"></div>
 </div>
 
 <script type="module">
@@ -506,6 +530,7 @@
                     'Analýza: <b>MS Clarity (anonymizováno)</b>'
     }).addTo(map);
 
+    let lastClickedLatLng = null;
     let analysisLayer = L.layerGroup().addTo(map);
     const wktParser = new Wkt.Wkt();
     const ostravaBlue = '#005aa7';
@@ -520,8 +545,19 @@
         radiusLabel.innerText = currentRadius;
     };
 
+    async function refreshAnalysis() {
+        if (!lastClickedLatLng) return;
+        
+        map.fireEvent('click', {
+            latlng: lastClickedLatLng,
+            layerPoint: map.latLngToLayerPoint(lastClickedLatLng),
+            containerPoint: map.latLngToContainerPoint(lastClickedLatLng)
+        });
+    }
+
     // ANALÝZA PO KLIKNUTÍ
     map.on('click', async function(e) {
+        lastClickedLatLng = e.latlng; // Uložení poslední kliknuté pozice pro reaktivní ovládání radiusu
         const { lat, lng } = e.latlng;
         
         // Získání aktivních filtrů
@@ -630,6 +666,10 @@
                 L.popup().setLatLng([obj.lat, obj.lon])
                         .setContent(`<b>${displayName}</b><br>${obj.category}<small>`)
                         .openOn(map);
+
+                if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('expanded');
+    }
             };
             list.appendChild(item);
         });
@@ -651,17 +691,19 @@
         const toggleBtn = document.getElementById('toggle-sidebar');
         
         sidebar.classList.toggle('collapsed');
-        
+
         if (sidebar.classList.contains('collapsed')) {
-            toggleBtn.innerText = "◀";
+            toggleBtn.innerText = "◀"; 
+            document.documentElement.style.setProperty('--sidebar-width', '0px');
         } else {
             toggleBtn.innerText = "▶";
+            document.documentElement.style.setProperty('--sidebar-width', '350px');
         }
         
         setTimeout(() => {
             map.invalidateSize();
         }, 300);
-    }
+    };
 
     const searchInput = document.getElementById('map-search');
     const resultsContainer = document.getElementById('autocomplete-results');
@@ -923,13 +965,11 @@
         const diff = touchStart - touchEnd;
         const isAtTop = sidebarContent.scrollTop <= 0;
 
-        // TAH NAHORU: Otevře panel
         if (diff > 50) {
             sidebar.classList.add('expanded');
             readyToClose = false;
         }
 
-        // TAH DOLŮ: Zavře panel
         if (diff < -50) {
             if (isHeader || readyToClose) {
                 sidebar.classList.remove('expanded');
@@ -938,6 +978,11 @@
         }
         setTimeout(() => map.invalidateSize(), 300);
     }
+
+    document.getElementById('radius-slider').onchange = () => refreshAnalysis();
+    document.querySelectorAll('.cat-filter').forEach(checkbox => {
+        checkbox.onchange = () => refreshAnalysis();
+    });
 </script>
 
 </body>
